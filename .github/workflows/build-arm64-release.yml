@@ -74,24 +74,24 @@ jobs:
                 echo "未找到可执行文件" >&2
                 exit 1
               fi
+
+              # 生成正式发行包
+              RELEASE_DIR="dist/${{ steps.version.outputs.release_name }}"
+              mkdir -p "$RELEASE_DIR"/{bin,desktop,icons,docs}
+              cp dist/linux-arm64/PDF编辑工具集成版 "$RELEASE_DIR/bin/"
+              cp -r desktop/* "$RELEASE_DIR/desktop/" 2>/dev/null || true
+              cp -r desktop/icons/* "$RELEASE_DIR/icons/" 2>/dev/null || true
+              cp CHANGELOG_UOS.md "$RELEASE_DIR/docs/CHANGELOG.md" 2>/dev/null || true
+
+              chmod +x "$RELEASE_DIR/bin/PDF编辑工具集成版" \
+                "$RELEASE_DIR/desktop/start_pdf_editor.sh" \
+                "$RELEASE_DIR/desktop/install_uos_final.sh" \
+                "$RELEASE_DIR/desktop/post_install.sh" 2>/dev/null || true
+
+              tar -czf "artifacts/${{ steps.version.outputs.release_name }}.tar.gz" -C dist "${{ steps.version.outputs.release_name }}"
+
+              echo "Build complete. Release: ${{ steps.version.outputs.release_name }}"
             '
-          
-          # 生成正式发行包
-          RELEASE_DIR="dist/$RELEASE_NAME"
-          mkdir -p "$RELEASE_DIR"/{bin,desktop,icons,docs}
-          cp dist/linux-arm64/PDF编辑工具集成版 "$RELEASE_DIR/bin/"
-          cp -r desktop/* "$RELEASE_DIR/desktop/" 2>/dev/null || true
-          cp -r desktop/icons/* "$RELEASE_DIR/icons/" 2>/dev/null || true
-          cp CHANGELOG_UOS.md "$RELEASE_DIR/docs/CHANGELOG.md" 2>/dev/null || true
-          
-          chmod +x "$RELEASE_DIR/bin/PDF编辑工具集成版" \
-            "$RELEASE_DIR/desktop/start_pdf_editor.sh" \
-            "$RELEASE_DIR/desktop/install_uos_final.sh" \
-            "$RELEASE_DIR/desktop/post_install.sh" 2>/dev/null || true
-          
-          tar -czf "artifacts/$RELEASE_NAME.tar.gz" -C dist "$RELEASE_NAME"
-          
-          echo "Build complete. Release: $RELEASE_NAME"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
