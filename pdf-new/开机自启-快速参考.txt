@@ -1,0 +1,124 @@
+========================================
+PDF编辑工具 - 开机自启快速参考
+========================================
+
+✅ 开机自启状态
+----------------------------------------
+使用快速部署脚本后，开机自启已自动配置完成！
+
+🔧 两个关键配置
+----------------------------------------
+1. Docker服务自启
+   命令: systemctl enable docker
+   作用: 系统启动时自动启动Docker
+
+2. 容器自动重启
+   参数: --restart unless-stopped
+   作用: Docker启动后自动运行容器
+
+🔄 重启流程
+----------------------------------------
+系统开机
+  ↓ (10-20秒)
+Docker服务启动
+  ↓ (5-10秒)
+pdf-editor容器启动
+  ↓ (15-30秒)
+应用可用 http://localhost:5000
+
+总时间: 约30-60秒
+
+✅ 验证命令
+----------------------------------------
+# 检查Docker服务自启
+systemctl is-enabled docker
+# 应显示: enabled
+
+# 检查容器重启策略
+docker inspect --format='{{.HostConfig.RestartPolicy.Name}}' pdf-editor
+# 应显示: unless-stopped
+
+# 检查容器运行状态
+docker ps | grep pdf-editor
+# 应显示正在运行的容器
+
+# 测试访问
+curl http://localhost:5000
+# 或浏览器打开 http://localhost:5000
+
+🧪 测试开机自启
+----------------------------------------
+# 重启系统
+sudo reboot
+
+# 启动后等待1分钟，然后检查
+docker ps
+docker logs pdf-editor
+
+# 访问应用
+http://localhost:5000
+
+📋 常用命令
+----------------------------------------
+# 查看容器状态
+docker ps -a | grep pdf-editor
+
+# 查看日志
+docker logs pdf-editor
+
+# 手动启动
+docker start pdf-editor
+
+# 手动停止
+docker stop pdf-editor
+
+# 手动重启
+docker restart pdf-editor
+
+# 查看资源使用
+docker stats pdf-editor
+
+🔧 故障排除
+----------------------------------------
+问题: 重启后容器没有启动
+
+解决:
+1. 检查Docker服务
+   systemctl status docker
+   sudo systemctl start docker
+
+2. 手动启动容器
+   docker start pdf-editor
+
+3. 查看错误日志
+   docker logs pdf-editor
+
+4. 重新配置自启
+   sudo systemctl enable docker
+   docker update --restart unless-stopped pdf-editor
+
+⚙️ 手动配置（备用）
+----------------------------------------
+如果自动配置失败，手动执行：
+
+# 1. Docker服务自启
+sudo systemctl enable docker
+sudo systemctl start docker
+
+# 2. 容器重启策略
+docker update --restart unless-stopped pdf-editor
+
+# 3. 验证
+systemctl is-enabled docker
+docker inspect --format='{{.HostConfig.RestartPolicy.Name}}' pdf-editor
+
+📖 详细文档
+----------------------------------------
+更多信息请参考:
+  • 开机自启配置说明.md
+  • 统信系统部署说明.md
+
+========================================
+提示: 系统重启后约1分钟内应用会自动可用
+========================================
+

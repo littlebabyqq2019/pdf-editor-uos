@@ -1,0 +1,106 @@
+name: Build Linux ARM64 executable
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - '.github/workflows/build-arm64-release.yml'
+      - 'linux_arm64.spec'
+      - 'requirements.txt'
+      - 'app.py'
+      - '.version'
+      - 'CHANGELOG_UOS.md'
+
+permissions:
+  contents: write
+
+jobs:
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse version
+        id: version
+        run: |
+          if [ -f .version ]; then
+            source .version
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "release_name=PDF编辑工具-UOS-arm64-v$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version=1.0.0" >> $GITHUB_OUTPUT
+            echo "release_name=PDF编辑工具-UOS-arm64-v1.0.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Linux ARM64 executable
+        run: |
+          mkdir -p artifacts
+          RELEASE_NAME="${{ steps.version.outputs.release_name }}"
+          docker run --rm --platform linux/arm64 \
+            -v "$PWD":/workspace -w /workspace \
+            python:3.11-slim bash -lc '
+              set -e
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update
+              apt-get install -y --no-install-recommends \
+                build-essential libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 libgomp1 \
+                libjpeg62-turbo zlib1g libpng16-16 libtiff5 libwebp6 libfreetype6
+              pip install --no-cache-dir --upgrade pip setuptools wheel pyinstaller
+              pip install --no-cache-dir -r requirements.txt
+              mkdir -p dist/linux-arm64/desktop
+              python desktop/generate_icon.py --png dist/linux-arm64/desktop/icons/pdf-editor.png --ico dist/linux-arm64/desktop/icons/pdf-editor.ico >/dev/null 2>&1 || true
+              cp -r desktop dist/linux-arm64/desktop
+              pyinstaller --clean --noconfirm --distpath dist/linux-arm64 --workpath build/pyinstaller-arm64 linux_arm64.spec
+              chmod +x dist/linux-arm64/PDF编辑工具集成版
+              if [ -f dist/linux-arm64/PDF编辑工具集成版 ]; then
+                tar -czf artifacts/pdf-editor-linux-arm64.tar.gz -C dist/linux-arm64 PDF编辑工具集成版
+              else
+                echo "未找到可执行文件" >&2
+                exit 1
+              fi
+            '
+          
+          # 生成正式发行包
+          RELEASE_DIR="dist/$RELEASE_NAME"
+          mkdir -p "$RELEASE_DIR"/{bin,desktop,icons,docs}
+          cp dist/linux-arm64/PDF编辑工具集成版 "$RELEASE_DIR/bin/"
+          cp -r desktop/* "$RELEASE_DIR/desktop/" 2>/dev/null || true
+          cp -r desktop/icons/* "$RELEASE_DIR/icons/" 2>/dev/null || true
+          cp CHANGELOG_UOS.md "$RELEASE_DIR/docs/CHANGELOG.md" 2>/dev/null || true
+          
+          chmod +x "$RELEASE_DIR/bin/PDF编辑工具集成版" \
+            "$RELEASE_DIR/desktop/start_pdf_editor.sh" \
+            "$RELEASE_DIR/desktop/install_uos_final.sh" \
+            "$RELEASE_DIR/desktop/post_install.sh" 2>/dev/null || true
+          
+          tar -czf "artifacts/$RELEASE_NAME.tar.gz" -C dist "$RELEASE_NAME"
+          
+          echo "Build complete. Release: $RELEASE_NAME"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-editor-linux-arm64
+          path: artifacts/
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*

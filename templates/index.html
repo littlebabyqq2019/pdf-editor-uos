@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF文件编辑软件</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            z-index: 0;
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            font-weight: 300;
+            letter-spacing: -1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            position: relative;
+            z-index: 1;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 999;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .nav-button:hover {
+            background: #f0f0f0;
+            color: #764ba2;
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+        }
+
+        .nav-button i {
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            padding: 30px 40px;
+            background: #fafbfc;
+        }
+
+        .upload-area {
+            border: 2px dashed #e1e8ed;
+            border-radius: 16px;
+            padding: 25px 30px;
+            text-align: center;
+            background: white;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: default;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            min-height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .upload-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(103, 126, 234, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-area:hover::before {
+            left: 100%;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.15);
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            box-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-icon {
+            font-size: 2.5em;
+            color: #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1);
+            color: #764ba2;
+        }
+
+        .upload-text-main {
+            font-size: 1.1em;
+            color: #2c3e50;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .upload-text-sub {
+            font-size: 0.85em;
+            color: #74b9ff;
+            font-weight: 400;
+            margin: 0;
+        }
+
+        .upload-divider {
+            position: relative;
+            width: 100%;
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .upload-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e1e8ed;
+            z-index: 1;
+        }
+
+        .upload-divider span {
+            background: white;
+            padding: 0 20px;
+            color: #74b9ff;
+            font-size: 0.9em;
+            font-weight: 500;
+            position: relative;
+            z-index: 2;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 50px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .upload-btn:hover::before {
+            left: 100%;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .function-buttons {
+            padding: 30px 40px;
+            background: white;
+        }
+
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-bottom: 0;
+        }
+
+        .function-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 18px 20px;
+            border-radius: 14px;
+            font-size: 1.05em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .function-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .function-btn:hover::before {
+            left: 100%;
+        }
+
+        .function-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.35);
+        }
+
+        .function-btn:active {
+            transform: translateY(-2px);
+        }
+
+        .function-btn.remove-header-seal { 
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+            box-shadow: 0 8px 25px rgba(253, 121, 168, 0.25);
+        }
+        
+        .function-btn.remove-header-seal:hover {
+            box-shadow: 0 15px 40px rgba(253, 121, 168, 0.35);
+        }
+        
+        .function-btn.remove-seal { 
+            background: linear-gradient(135deg, #fdcb6e, #e17055);
+            box-shadow: 0 8px 25px rgba(253, 203, 110, 0.25);
+        }
+        
+        .function-btn.remove-seal:hover {
+            box-shadow: 0 15px 40px rgba(253, 203, 110, 0.35);
+        }
+        
+        .function-btn.convert-remove { 
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            box-shadow: 0 8px 25px rgba(162, 155, 254, 0.25);
+        }
+        
+        .function-btn.convert-remove:hover {
+            box-shadow: 0 15px 40px rgba(162, 155, 254, 0.35);
+        }
+        
+        .function-btn.remove-bg { 
+            background: linear-gradient(135deg, #fd79a8, #fdcb6e);
+            box-shadow: 0 8px 25px rgba(253, 121, 168, 0.25);
+        }
+        
+        .function-btn.remove-bg:hover {
+            box-shadow: 0 15px 40px rgba(253, 121, 168, 0.35);
+        }
+        
+        .function-btn.to-word { 
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            box-shadow: 0 8px 25px rgba(0, 184, 148, 0.25);
+        }
+        
+        .function-btn.to-word:hover {
+            box-shadow: 0 15px 40px rgba(0, 184, 148, 0.35);
+        }
+        
+        .function-btn.images-to-pdf { 
+            background: linear-gradient(135deg, #636e72, #2d3436);
+            box-shadow: 0 8px 25px rgba(99, 110, 114, 0.25);
+        }
+        
+        .function-btn.images-to-pdf:hover {
+            box-shadow: 0 15px 40px rgba(99, 110, 114, 0.35);
+        }
+
+        .file-list {
+            padding: 30px 40px;
+            background: #fafbfc;
+        }
+
+        .file-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .file-list h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1.8em;
+            font-weight: 300;
+        }
+
+        .clear-all-btn {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 20px rgba(253, 121, 168, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .clear-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(253, 121, 168, 0.35);
+        }
+
+        .clear-all-btn:active {
+            transform: translateY(0);
+        }
+
+        /* 终止并重启：与"去红头及公章"按钮相同的紫色渐变风格 */
+        .danger-restart-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .danger-restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.35);
+            filter: brightness(1.02);
+        }
+        .danger-restart-btn:active {
+            transform: translateY(0);
+        }
+
+        .file-item {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: move;
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+
+        .file-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .file-item.dragging {
+            opacity: 0.6;
+            transform: rotate(3deg) scale(0.98);
+        }
+
+        .file-item.drag-over {
+            border: 2px dashed #667eea;
+            background: #f8f9ff;
+        }
+
+        .drag-handle {
+            color: #bdc3c7;
+            margin-right: 20px;
+            cursor: grab;
+            font-size: 1.3em;
+            transition: color 0.3s ease;
+        }
+
+        .drag-handle:hover {
+            color: #667eea;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .file-type {
+            color: #74b9ff;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .preview-btn, .delete-btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .preview-btn {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.25);
+        }
+
+        .preview-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35);
+        }
+
+        .delete-btn {
+            background: linear-gradient(135deg, #fd79a8, #e84393);
+            color: white;
+            box-shadow: 0 4px 15px rgba(253, 121, 168, 0.25);
+        }
+
+        .delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(253, 121, 168, 0.35);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #74b9ff;
+        }
+
+        .empty-state i {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.6;
+        }
+
+        .empty-state p {
+            font-size: 1.2em;
+            font-weight: 400;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+
+        .modal-content {
+            position: relative;
+            margin: 5% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 800px;
+            background: white;
+            border-radius: 15px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .preview-image:hover {
+            transform: scale(1.02);
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 3em;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        /* 每行按钮统一配色（强制覆盖原配色） */
+        .buttons-grid .function-btn:nth-child(1),
+        .buttons-grid .function-btn:nth-child(2),
+        .buttons-grid .function-btn:nth-child(3) {
+            background: linear-gradient(135deg, #667eea, #764ba2) !important;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25) !important;
+        }
+        .buttons-grid .function-btn:nth-child(1):hover,
+        .buttons-grid .function-btn:nth-child(2):hover,
+        .buttons-grid .function-btn:nth-child(3):hover {
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.35) !important;
+        }
+
+        .buttons-grid .function-btn:nth-child(4),
+        .buttons-grid .function-btn:nth-child(5),
+        .buttons-grid .function-btn:nth-child(6) {
+            background: linear-gradient(135deg, #00b894, #00cec9) !important;
+            box-shadow: 0 6px 20px rgba(0, 184, 148, 0.25) !important;
+        }
+        .buttons-grid .function-btn:nth-child(4):hover,
+        .buttons-grid .function-btn:nth-child(5):hover,
+        .buttons-grid .function-btn:nth-child(6):hover {
+            box-shadow: 0 15px 40px rgba(0, 184, 148, 0.35) !important;
+        }
+
+        .buttons-grid .function-btn:nth-child(7),
+        .buttons-grid .function-btn:nth-child(8),
+        .buttons-grid .function-btn:nth-child(9) {
+            background: linear-gradient(135deg, #636e72, #2d3436) !important;
+            box-shadow: 0 6px 20px rgba(99, 110, 114, 0.25) !important;
+        }
+        .buttons-grid .function-btn:nth-child(7):hover,
+        .buttons-grid .function-btn:nth-child(8):hover,
+        .buttons-grid .function-btn:nth-child(9):hover {
+            box-shadow: 0 15px 40px rgba(99, 110, 114, 0.35) !important;
+        }
+        /* 页码高亮：与解析按钮风格一致 */
+        button[data-pg].chip-active {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe) !important;
+            color: #ffffff !important;
+            border-color: rgba(108, 92, 231, 0.6) !important;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.25) !important;
+        }
+        button[data-pg].chip-active:hover {
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35) !important;
+        }
+        /* 覆盖文件列表中的“清空所有文件”和“删除”按钮为与预览按钮一致的紫色系 */
+        .file-list .clear-all-btn,
+        .file-list .delete-btn {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.25) !important;
+        }
+        .file-list .clear-all-btn:hover,
+        .file-list .delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35) !important;
+        }
+    </style>
+    <link rel="stylesheet" href="/static/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/editor" class="nav-button">
+                <i class="fas fa-edit"></i>
+                <span>手动编辑</span>
+            </a>
+            <h1><i class="fas fa-file-pdf"></i> PDF文件编辑软件</h1>
+            <p>支持PDF去红头、去公章、转换等多种功能</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area">
+                <div class="upload-content">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <div class="upload-text-main">
+                        拖拽文件到此处上传
+                    </div>
+                    <div class="upload-text-sub">
+                        支持PDF和图片文件（JPG、PNG、BMP、TIFF）
+                    </div>
+                    <div class="upload-divider">
+                        <span>或</span>
+                    </div>
+                    <label class="upload-btn" for="fileInput">
+                        <i class="fas fa-folder-open"></i>
+                        <span>选择文件</span>
+                    </label>
+                </div>
+            </div>
+            <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff" style="display: none;">
+        </div>
+
+        <div class="function-buttons">
+            <!-- 异步处理开关 -->
+            <div id="asyncToggleBar" style="display:flex; align-items:center; justify-content:flex-start; gap:10px; margin:-6px 0 14px 0; padding:8px 10px; background:#f9fafb; border:1px dashed #e5e7eb; border-radius:10px;">
+                <label for="asyncToggle" style="display:flex; align-items:center; gap:10px; font-size:15px; color:#374151; font-weight:600;">
+                    <input id="asyncToggle" type="checkbox" style="transform:scale(1.2);" />
+                    多线程处理（异步提交）
+                </label>
+                <span style="font-size:12px; color:#6b7280;">勾选后任务将在后台执行，页面不会被阻塞</span>
+            </div>
+            <div class="buttons-grid">
+                <button class="function-btn remove-header-seal" onclick="processFiles('remove_header_seal')">
+                    <i class="fas fa-eraser"></i> 去红头及公章
+                </button>
+                <button class="function-btn remove-seal" onclick="processFiles('remove_seal')">
+                    <i class="fas fa-stamp"></i> 去公章
+                </button>
+                <button class="function-btn convert-remove" onclick="processFiles('convert_then_remove')">
+                    <i class="fas fa-image"></i> 转图片后去红头及公章
+                </button>
+                <button class="function-btn remove-bg" onclick="processFiles('remove_background')">
+                    <i class="fas fa-magic"></i> 去背景
+                </button>
+                <button class="function-btn to-word" onclick="processFiles('convert_to_word')">
+                    <i class="fas fa-file-word"></i> 转Word
+                </button>
+                <button class="function-btn images-to-pdf" onclick="processFiles('images_to_pdf')">
+                    <i class="fas fa-file-pdf"></i> 图片转PDF
+                </button>
+
+                <button class="function-btn" onclick="openDeletePages()">
+                    <i class="fas fa-trash-alt"></i> 删除PDF页面
+                </button>
+                <button class="function-btn" onclick="mergePdfs()">
+                    <i class="fas fa-layer-group"></i> 合并PDF文件
+                </button>
+                <button class="function-btn" onclick="splitPdf()">
+                    <i class="fas fa-cut"></i> 拆分PDF文件
+                </button>
+            </div>
+        </div>
+
+        <div class="file-list">
+            <div class="file-list-header">
+                <h3><i class="fas fa-list"></i> 待处理文件</h3>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button class="danger-restart-btn" onclick="killAndRestart()" id="killRestartBtn" title="终止当前进程并重启服务">
+                        <i class="fas fa-redo-alt"></i> 终止并重启
+                    </button>
+                    <button class="clear-all-btn" onclick="clearAllFiles()" style="display: none;" id="clearAllBtn">
+                        <i class="fas fa-trash-alt"></i> 清空所有文件
+                    </button>
+                </div>
+            </div>
+            <div id="fileListContainer">
+                <div class="empty-state">
+                    <i class="fas fa-folder-open"></i>
+                    <p>暂无文件，请先上传文件</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在处理中，请稍候...</p>
+        </div>
+
+        <!-- 版本信息 -->
+        <div style="text-align: center; padding: 25px 40px 30px; background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%); border-top: 1px solid #e1e8ed;">
+            <p style="margin: 8px 0; color: #2c3e50; font-size: 0.95em; font-weight: 500;">
+                <i class="fas fa-code-branch" style="color: #667eea;"></i> 
+                版本 <strong style="color: #667eea;">{{ version }}</strong>
+                <span style="margin: 0 10px; color: #e1e8ed;">|</span>
+                <i class="fas fa-calendar-alt" style="color: #667eea;"></i> 
+                <span style="color: #74b9ff;">{{ version_date }}</span>
+                <span style="margin: 0 10px; color: #e1e8ed;">|</span>
+                <i class="fas fa-check-circle" style="color: #00b894;"></i> 
+                <strong style="color: #00b894;">WPS公章修复版</strong>
+            </p>
+            <p style="margin: 8px 0; font-size: 0.85em; color: #95a5a6;">
+                本版本已修复WPS中公章显示问题 ✓
+            </p>
+        </div>
+    </div>
+
+    <!-- 预览模态框 -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePreview()">&times;</span>
+            <h2>文件预览</h2>
+            <div id="previewContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let fileList = [];
+
+        // 页面加载时获取文件列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFileList();
+        });
+
+        // 文件上传处理
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            uploadFiles(e.target.files);
+            // 选完后清空，允许选择同一文件再次触发 change
+            e.target.value = '';
+        });
+
+        // 拖拽上传
+        const uploadArea = document.querySelector('.upload-area');
+        // 不再绑定区域点击，改用 <label for="fileInput"> 触发，避免重复弹窗
+        // 防御性处理：阻止 upload-area 除 label 外的点击，避免任何残留或外部脚本导致的重复触发
+        uploadArea.addEventListener('click', function(e) {
+            const isLabel = !!e.target.closest('label[for="fileInput"]');
+            if (!isLabel) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            uploadFiles(e.dataTransfer.files);
+        });
+
+        function uploadFiles(files) {
+            if (files.length === 0) return;
+
+            showLoading();
+            
+            Array.from(files).forEach(file => {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('文件上传成功！', 'success');
+                        loadFileList();
+                    } else {
+                        showAlert('上传失败: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showAlert('上传失败: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+            });
+        }
+
+        function loadFileList() {
+            fetch('/get_files')
+                .then(response => response.json())
+                .then(data => {
+                    fileList = data.files || [];
+                    renderFileList();
+                })
+                .catch(error => {
+                    console.error('获取文件列表失败:', error);
+                });
+        }
+
+        function renderFileList() {
+            const container = document.getElementById('fileListContainer');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            
+            if (fileList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-folder-open"></i>
+                        <p>暂无文件，请先上传文件</p>
+                    </div>
+                `;
+                clearAllBtn.style.display = 'none';
+                return;
+            }
+
+            clearAllBtn.style.display = 'block';
+
+            container.innerHTML = fileList.map((file, index) => `
+                <div class="file-item" draggable="true" data-index="${index}">
+                    <div class="drag-handle">
+                        <i class="fas fa-grip-vertical"></i>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">${file.filename}</div>
+                        <div class="file-type">${file.type} (${formatFileSize(file.size)})</div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="preview-btn" data-filename="${file.filename}">
+                            <i class="fas fa-eye"></i> 预览
+                        </button>
+                        <button class="delete-btn" data-filename="${file.filename}">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 添加委托：处理预览/删除，避免内联 onclick 被文件名破坏
+            container.addEventListener('click', function(e) {
+                const previewBtn = e.target.closest('.preview-btn');
+                const deleteBtn = e.target.closest('.delete-btn');
+                if (previewBtn) {
+                    const fn = previewBtn.getAttribute('data-filename');
+                    if (fn) previewFile(fn);
+                    e.preventDefault();
+                    return;
+                }
+                if (deleteBtn) {
+                    const fn = deleteBtn.getAttribute('data-filename');
+                    if (fn) deleteFile(fn);
+                    e.preventDefault();
+                    return;
+                }
+            });
+
+            // 添加拖拽排序事件监听器
+            addDragSortListeners();
+        }
+
+        function addDragSortListeners() {
+            const fileItems = document.querySelectorAll('.file-item');
+            
+            fileItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            
+            this.classList.add('drag-over');
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+
+            if (draggedElement !== this) {
+                const draggedIndex = parseInt(draggedElement.dataset.index);
+                const targetIndex = parseInt(this.dataset.index);
+                
+                // 重新排列文件列表
+                const draggedFile = fileList[draggedIndex];
+                fileList.splice(draggedIndex, 1);
+                fileList.splice(targetIndex, 0, draggedFile);
+                
+                // 重新渲染列表
+                renderFileList();
+            }
+
+            this.classList.remove('drag-over');
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            const items = document.querySelectorAll('.file-item');
+            items.forEach(item => {
+                item.classList.remove('dragging', 'drag-over');
+            });
+        }
+
+        function deleteFile(filename) {
+            fetch('/delete_file', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ filename: filename })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('文件删除成功！', 'success');
+                    loadFileList();
+                } else {
+                    showAlert('删除失败: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('删除失败: ' + error.message, 'error');
+            });
+        }
+
+        function clearAllFiles() {
+            fetch('/clear_all_files', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('所有文件已清空！', 'success');
+                    loadFileList();
+                } else {
+                    showAlert('清空失败: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                showAlert('清空失败: ' + error.message, 'error');
+            });
+        }
+
+        // 终止并重启后端服务（适用于程序长时间无响应时）
+        function killAndRestart() {
+            if (!confirm('确定要终止并重启程序吗？正在进行的任务将被中断。')) return;
+            showLoading();
+            fetch('/kill_and_restart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d && d.success) {
+                    showAlert('程序即将重启，3秒后自动刷新...', 'success');
+                    setTimeout(() => { location.reload(); }, 3000);
+                } else {
+                    showAlert('操作失败: ' + (d && d.error ? d.error : '未知错误'), 'error');
+                }
+            })
+            .catch(e => {
+                showAlert('请求失败: ' + e.message, 'error');
+            })
+            .finally(() => {
+                hideLoading();
+            });
+        }
+
+        function previewFile(filename) {
+            showLoading();
+            
+            fetch(`/preview/${filename}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showAlert('预览失败: ' + data.error, 'error');
+                        return;
+                    }
+
+                    const modal = document.getElementById('previewModal');
+                    const content = document.getElementById('previewContent');
+                    
+                    if (data.type === 'pdf') {
+                        content.innerHTML = data.pages.map(page => `
+                            <div>
+                                <h4>第 ${page.page} 页</h4>
+                                <img src="${page.image}" class="preview-image" onclick="openImageInNewTab(this.src)">
+                            </div>
+                        `).join('');
+                    } else if (data.type === 'image') {
+                        content.innerHTML = `
+                            <img src="${data.image}" class="preview-image" onclick="openImageInNewTab(this.src)">
+                        `;
+                    }
+
+                    modal.style.display = 'block';
+                })
+                .catch(error => {
+                    showAlert('预览失败: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+        }
+
+        function processFiles(action) {
+            if (fileList.length === 0) {
+                showAlert('请先上传文件', 'error');
+                return;
+            }
+
+            const requestData = { 
+                action: action,
+                file_order: fileList.map(file => file.filename)
+            };
+
+            const isAsync = !!document.getElementById('asyncToggle')?.checked;
+
+            if (!isAsync) {
+                // 保持原同步流程
+                showLoading();
+                fetch('/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('处理完成！', 'success');
+                        downloadFile(data.download_file);
+                        loadFileList();
+                    } else {
+                        showAlert('处理失败: ' + data.error, 'error');
+                    }
+                })
+                .catch(error => {
+                    showAlert('处理失败: ' + error.message, 'error');
+                })
+                .finally(() => {
+                    hideLoading();
+                });
+                return;
+            }
+
+            // 异步流程：提交任务并轮询状态
+            showLoading();
+            fetch('/process_async', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success || !data.job_id) {
+                    showAlert('提交失败: ' + (data.error || '未知错误'), 'error');
+                    return;
+                }
+                const jobId = data.job_id;
+                showAlert('任务已提交，正在后台处理...', 'success');
+
+                // 轮询状态
+                const start = Date.now();
+                const POLL_INTERVAL = 1500;
+                const TIMEOUT = 20 * 60 * 1000; // 20分钟上限，防止超长任务无限等待
+
+                const timer = setInterval(() => {
+                    // 超时处理
+                    if (Date.now() - start > TIMEOUT) {
+                        clearInterval(timer);
+                        hideLoading();
+                        showAlert('任务超时，请稍后重试或切换同步模式', 'error');
+                        return;
+                    }
+                    fetch('/job_status?job_id=' + encodeURIComponent(jobId))
+                        .then(res => res.json())
+                        .then(st => {
+                            if (!st || !st.status) return;
+                            if (st.status === 'running' || st.status === 'queued') {
+                                // 继续等待
+                                return;
+                            }
+                            clearInterval(timer);
+                            hideLoading();
+                            if (st.status === 'success') {
+                                showAlert('处理完成！', 'success');
+                                if (st.result && st.result.download_file) {
+                                    downloadFile(st.result.download_file);
+                                }
+                                loadFileList();
+                            } else if (st.status === 'error') {
+                                showAlert('处理失败: ' + (st.error || '未知错误'), 'error');
+                            } else {
+                                showAlert('未知状态: ' + st.status, 'error');
+                            }
+                        })
+                        .catch(() => { /* 忽略单次查询异常 */ });
+                }, POLL_INTERVAL);
+            })
+            .catch(err => {
+                showAlert('提交失败: ' + err.message, 'error');
+            })
+            .finally(() => {
+                // 异步模式下保持 loading 直到轮询结束，故不在此 hide
+            });
+        }
+
+        function downloadFile(filename) {
+            const link = document.createElement('a');
+            link.href = `/download/${filename}`;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+        }
+
+        function openImageInNewTab(src) {
+            window.open(src, '_blank');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                ${message}
+            `;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.upload-section'));
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 1000);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 页面加载时清空文件列表并加载
+        document.addEventListener('DOMContentLoaded', function() {
+            // 先清空服务器端的文件
+            fetch('/clear_all_files', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 无论清空是否成功，都重新加载文件列表
+                loadFileList();
+            })
+            .catch(error => {
+                // 即使清空失败，也要加载文件列表
+                loadFileList();
+            });
+        });
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('previewModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+    // ===== 新增：删除页面（缩略图+拖拽+多选删除）/ 合并 / 拆分 =====
+    function pickPdfFilename(defaultSingle=true) {
+        const pdfs = fileList.filter(f => /\.pdf$/i.test(f.filename)).map(f => f.filename);
+        if (pdfs.length === 0) { showAlert('请先上传PDF文件', 'error'); return null; }
+        if (defaultSingle && pdfs.length === 1) return pdfs[0];
+        const choice = prompt('请选择一个PDF文件名：\n' + pdfs.join('\n'));
+        if (!choice) return null;
+        if (!pdfs.includes(choice)) { showAlert('文件名不在列表中', 'error'); return null; }
+        return choice;
+    }
+
+    // 删除页面 UI
+    function openDeletePages() {
+        const filename = pickPdfFilename(true);
+        if (!filename) return;
+        showLoading();
+        fetch('/pdf/pages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({filename}) })
+        .then(r=>r.json()).then(data=>{
+            if (!data.success) { showAlert(data.error||'读取页面失败','error'); return; }
+            const pages = data.meta.pages; // [{index, thumb}]
+
+            const modalId = 'deletePagesModal';
+            const html = `
+            <div id="${modalId}" class="modal" style="display:block;">
+              <div class="modal-content" style="max-width:1100px; border-radius:16px; padding:0;">
+                <div style="padding:18px 22px; border-bottom:1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between;">
+                  <div>
+                    <h2 style="margin:0; font-weight:500;">删除PDF页面</h2>
+                    <div style="color:#6b7280; font-size:13px; margin-top:6px;">文件：${filename}，共 ${pages.length} 页。拖拽卡片可调整顺序，勾选可标记删除。</div>
+                  </div>
+                  <span class="close" onclick="document.getElementById('${modalId}').remove()">&times;</span>
+                </div>
+
+                <div style="padding:12px 22px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; border-bottom:1px dashed #eef2f7;">
+                  <button id="btnSelectAll" class="preview-btn" style="padding:8px 12px; border-radius:10px;"><i class="fas fa-check-square"></i> 全选</button>
+                  <button id="btnClearSel" class="delete-btn" style="padding:8px 12px; border-radius:10px; background:linear-gradient(135deg,#95a5a6,#7f8c8d)"><i class="fas fa-ban"></i> 清除选择</button>
+                  <button id="btnRemoveMarked" class="delete-btn" style="padding:8px 12px; border-radius:10px;"><i class="fas fa-trash-alt"></i> 从面板移除勾选页</button>
+                  <div style="margin-left:auto; color:#6b7280; font-size:13px;" id="statsLabel">保留 0 页 | 待删 0 页</div>
+                </div>
+
+                <div id="thumbGrid" style="padding:18px 22px; display:grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:14px; max-height:58vh; overflow:auto;">
+                </div>
+
+                <div style="padding:14px 22px; border-top:1px solid #eef2f7; display:flex; gap:10px; justify-content:flex-end;">
+                  <button class="clear-all-btn" onclick="document.getElementById('${modalId}').remove()" style="padding:10px 18px; border-radius:10px; background:linear-gradient(135deg,#bdc3c7,#95a5a6);">取消</button>
+                  <button id="btnSave" class="preview-btn" style="padding:10px 18px; border-radius:10px;"><i class="fas fa-save"></i> 保存</button>
+                </div>
+              </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+
+            const grid = document.getElementById('thumbGrid');
+            // 生成卡片
+            grid.innerHTML = pages.map(p=>`
+              <div class="thumb-item" draggable="true" data-index="${p.index}"
+                   style="position:relative; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:10px; box-shadow:0 6px 18px rgba(17,24,39,0.06); transition:transform .2s;">
+                <div style="position:absolute; left:10px; top:10px; color:#9ca3af; cursor:grab;"><i class="fas fa-grip-lines"></i></div>
+                <div style="position:absolute; right:10px; top:10px;">
+                  <label style="background:#f3f4f6; padding:6px 8px; border-radius:8px; font-size:12px; color:#4b5563; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                    <input type="checkbox" class="chkRemove" style="transform:scale(1.1)"> 删除
+                  </label>
+                </div>
+                <img src="${p.thumb}" style="width:100%; border-radius:8px; display:block;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+                  <span style="font-size:12px; color:#6b7280;">第 ${p.index+1} 页</span>
+                  <span style="font-size:11px; color:#9ca3af;">原序#${p.index}</span>
+                </div>
+              </div>
+            `).join('');
+
+            // 拖拽排序交互
+            let dragging=null;
+            const updateStats = ()=>{
+              const kept = [...grid.children].length;
+              const deleted = pages.length - kept;
+              document.getElementById('statsLabel').textContent = `保留 ${kept} 页 | 待删 ${deleted} 页`;
+            };
+            updateStats();
+
+            grid.querySelectorAll('.thumb-item').forEach(el=>{
+              el.addEventListener('dragstart', e=>{ dragging=el; el.style.opacity='0.6'; e.dataTransfer.effectAllowed='move'; });
+              el.addEventListener('dragend', e=>{ dragging=null; el.style.opacity='1'; grid.querySelectorAll('.thumb-item').forEach(x=>x.classList.remove('drag-over')); });
+              el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('drag-over'); el.style.borderColor='#667eea'; });
+              el.addEventListener('dragleave', e=>{ el.classList.remove('drag-over'); el.style.borderColor='#e5e7eb'; });
+              el.addEventListener('drop', e=>{
+                e.preventDefault();
+                el.classList.remove('drag-over'); el.style.borderColor='#e5e7eb';
+                if (dragging && dragging!==el) {
+                  const all=[...grid.children];
+                  const from=all.indexOf(dragging), to=all.indexOf(el);
+                  if (from>=0 && to>=0) {
+                    if (from<to) el.after(dragging); else el.before(dragging);
+                  }
+                }
+              });
+            });
+
+            // 工具栏按钮
+            document.getElementById('btnSelectAll').onclick = ()=>{
+              grid.querySelectorAll('.chkRemove').forEach(chk=> chk.checked = true);
+            };
+            document.getElementById('btnClearSel').onclick = ()=>{
+              grid.querySelectorAll('.chkRemove').forEach(chk=> chk.checked = false);
+            };
+            document.getElementById('btnRemoveMarked').onclick = ()=>{
+              [...grid.children].forEach(item=>{
+                const chk=item.querySelector('.chkRemove');
+                if (chk && chk.checked) item.remove();
+              });
+              updateStats();
+            };
+
+            // 保存
+            document.getElementById('btnSave').onclick = ()=>{
+              const keptOrder = [...grid.children].map(item=>parseInt(item.getAttribute('data-index')));
+              const allIdx = pages.map(p=>p.index);
+              const remove = allIdx.filter(i=>!keptOrder.includes(i));
+              fetch('/pdf/pages/export', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ filename, order: keptOrder, remove })
+              }).then(r=>r.json()).then(resp=>{
+                if (!resp.success) { showAlert(resp.error||'导出失败','error'); return; }
+                showAlert('已生成新PDF','success');
+                downloadFile(resp.download);
+                document.getElementById(modalId).remove();
+                loadFileList();
+              }).catch(err=> showAlert('导出失败: '+err.message,'error'));
+            };
+          })
+        .catch(err=> showAlert('读取页面失败: '+err.message,'error'))
+        .finally(()=> hideLoading());
+    }
+
+    // 合并PDF：按当前文件列表顺序
+    function mergePdfs() {
+        const pdfs = fileList.filter(f=>/\.pdf$/i.test(f.filename)).map(f=>f.filename);
+        if (pdfs.length < 2) { showAlert('请至少上传两个PDF', 'error'); return; }
+        showLoading();
+        fetch('/pdf/merge', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ files: pdfs })
+        }).then(r=>r.json()).then(data=>{
+          if (!data.success) { showAlert(data.error||'合并失败','error'); return; }
+          showAlert('合并完成','success');
+          downloadFile(data.download);
+        }).catch(err=> showAlert('合并失败: '+err.message,'error'))
+        .finally(()=> hideLoading());
+    }
+
+    // 拆分PDF：输入区间，如 1-3,4-6
+    function splitPdf() {
+        const filename = pickPdfFilename(true);
+        if (!filename) return;
+
+        // 获取总页数用于可视化选择与校验
+        showLoading();
+        fetch('/pdf/pages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({filename}) })
+        .then(r=>r.json()).then(data=>{
+            if (!data.success) { showAlert(data.error||'无法读取页数','error'); return; }
+            const total = data.meta.total || 0;
+            const modalId = 'splitPdfModal';
+            const html = `
+            <div id="${modalId}" class="modal" style="display:block;">
+              <div class="modal-content" style="max-width:900px; border-radius:16px; padding:0;">
+                <div style="padding:18px 22px; border-bottom:1px solid #eef2f7; display:flex; align-items:center; justify-content:space-between;">
+                  <div>
+                    <h2 style="margin:0; font-weight:500;">拆分PDF文件</h2>
+                    <div style="color:#6b7280; font-size:13px; margin-top:6px;">文件：${filename}，总页数：<b>${total}</b>。可点击页码构造区间，或在下方输入区间（自动校验）。</div>
+                  </div>
+                  <span class="close" onclick="document.getElementById('${modalId}').remove()">&times;</span>
+                </div>
+
+                <div style="padding:14px 22px; border-bottom:1px dashed #eef2f7;">
+                  <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <input id="rangeInput" placeholder="输入区间：如 1-3,4-6 或 单页如 7" 
+                           style="flex:1; padding:10px 12px; border:1px solid #e5e7eb; border-radius:10px; outline:none;">
+                    <button id="btnParse" class="preview-btn" style="padding:10px 14px; border-radius:10px;"><i class="fas fa-check"></i> 解析</button>
+                    <button id="btnClear" class="clear-all-btn" style="padding:10px 14px; border-radius:10px; background:linear-gradient(135deg,#bdc3c7,#95a5a6);">清空</button>
+                  </div>
+                  <div id="rangeHint" style="margin-top:8px; color:#6b7280; font-size:12px;">提示：页码越界会自动校正到 1~${total}。</div>
+                </div>
+
+                <div style="padding:12px 22px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                    <div style="font-size:13px; color:#6b7280;">可视页码选择（点击高亮预览；按住 Shift 点击作为分隔点；可用右侧按钮清空分隔点）：</div>
+                    <button id="btnClearCuts" class="clear-all-btn" style="padding:6px 10px; border-radius:8px; background:linear-gradient(135deg,#bdc3c7,#95a5a6); font-size:12px;">
+                      <i class="fas fa-broom"></i> 清空分隔点
+                    </button>
+                  </div>
+                  <div id="pageChips" style="display:flex; flex-wrap:wrap; gap:6px; max-height:36vh; overflow:auto;"></div>
+                </div>
+
+                <div style="padding:14px 22px; border-top:1px solid #eef2f7; display:flex; gap:10px; justify-content:flex-end;">
+                  <button class="clear-all-btn" onclick="document.getElementById('${modalId}').remove()" style="padding:10px 18px; border-radius:10px; background:linear-gradient(135deg,#bdc3c7,#95a5a6);">取消</button>
+                  <button id="btnConfirmSplit" class="preview-btn" style="padding:10px 18px; border-radius:10px;"><i class="fas fa-scissors"></i> 确定拆分</button>
+                </div>
+              </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+
+            const chips = document.getElementById('pageChips');
+            const makeChip = (n)=> {
+              const el = document.createElement('button');
+              el.textContent = n;
+              el.setAttribute('data-pg', n);
+              el.style.cssText = "min-width:36px; padding:8px 10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; color:#374151; cursor:pointer;";
+              el.onmouseenter = ()=> el.style.borderColor='#667eea';
+              el.onmouseleave = ()=> el.style.borderColor='#e5e7eb';
+              return el;
+            };
+            for (let i=1;i<=total;i++){ chips.appendChild(makeChip(i)); }
+
+            const rangeInput = document.getElementById('rangeInput');
+            const hint = document.getElementById('rangeHint');
+
+            // 可视选择逻辑：支持 Shift 选区（自动覆盖 1~total）
+            const cutPoints = new Set();
+            let lastPg = null;
+            chips.addEventListener('click', (e)=>{
+              const btn = e.target.closest('button[data-pg]');
+              if (!btn) return;
+              const pg = parseInt(btn.getAttribute('data-pg'));
+              if (e.shiftKey) {
+                // Shift 模式：将点击页作为“分隔点”
+                cutPoints.add(pg);
+                buildRangesFromCuts();
+              } else {
+                // 普通点击：仅高亮预览（统一CSS类），不修改输入框
+                btn.classList.toggle('chip-active');
+                lastPg = null;
+              }
+            });
+            chips.addEventListener('dblclick', ()=>{
+              // 双击清空切点（不清空输入框，避免误操作丢失）
+              cutPoints.clear();
+              lastPg = null;
+              // 同步移除高亮
+              chips.querySelectorAll('button[data-pg].chip-active').forEach(b=> b.classList.remove('chip-active'));
+            });
+
+            // 清空分隔点按钮
+            const btnClearCuts = document.getElementById('btnClearCuts');
+            if (btnClearCuts) {
+              btnClearCuts.onclick = ()=>{
+                cutPoints.clear();
+                chips.querySelectorAll('button[data-pg].chip-active').forEach(b=> b.classList.remove('chip-active'));
+                // 输入框不清空，保持当前表达式；更新提示
+                validateRanges();
+              };
+            }
+
+            // 根据切点构造区间：[1,p1],[p1+1,p2],...,[pk+1,total]
+            function buildRangesFromCuts() {
+              const arr = Array.from(cutPoints).map(n=>Math.max(1, Math.min(n, total)));
+              arr.sort((a,b)=>a-b);
+              // 去重
+              const uniq = [];
+              let prev = null;
+              for (const v of arr) { if (v!==prev) { uniq.push(v); prev=v; } }
+              const ranges = [];
+              let start = 1;
+              for (const cp of uniq) {
+                if (start <= cp) ranges.push([start, cp]);
+                start = cp + 1;
+              }
+              if (start <= total) ranges.push([start, total]);
+              const text = ranges.map(([s,e])=> s===e ? `${s}` : `${s}-${e}`).join(', ');
+              // 回写并触发校验/规范化
+              rangeInput.value = text;
+              validateRanges();
+            }
+
+            function addRangeToInput(input, s, e) {
+              // 追加到已有表达式末尾
+              const seg = (s===e) ? `${s}` : `${s}-${e}`;
+              input.value = input.value ? (input.value.replace(/\s+/g,'') + ',' + seg) : seg;
+              validateRanges();
+            }
+
+            function parseRanges(str) {
+              const out=[];
+              (str||'').split(',').map(s=>s.trim()).filter(Boolean).forEach(seg=>{
+                let m = seg.match(/^(\d+)\s*-\s*(\d+)$/);
+                if (m) { out.push({start: parseInt(m[1]), end: parseInt(m[2])}); }
+                else {
+                  m = seg.match(/^(\d+)$/);
+                  if (m) { const v=parseInt(m[1]); out.push({start: v, end: v}); }
+                }
+              });
+              return out;
+            }
+
+            // 规范化为互不重叠的离散区间：自动去重边界，避免重复页
+            function normalizeToDisjoint(list) {
+              // 1) 越界校正并确保 s<=e
+              const norm = list.map(({start,end})=>{
+                let s = Math.max(1, Math.min(start, total));
+                let e = Math.max(1, Math.min((end ?? start), total));
+                if (s > e) [s, e] = [e, s];
+                return { start: s, end: e };
+              }).sort((a,b) => a.start - b.start || a.end - b.end);
+
+              // 2) 离散裁剪：每段起点提升到 lastEnd+1，跳过无效段
+              const out = [];
+              let lastEnd = 0;
+              for (const r of norm) {
+                const s = Math.max(r.start, lastEnd + 1);
+                const e = r.end;
+                if (s <= e) {
+                  out.push({ start: s, end: e });
+                  lastEnd = e;
+                }
+              }
+              return out;
+            }
+
+            function validateRanges() {
+              const list = parseRanges(rangeInput.value);
+              if (list.length===0) { hint.style.color='#6b7280'; hint.textContent = '提示：页码越界会自动校正到 1~' + total + '。'; return null; }
+              const merged = normalizeToDisjoint(list);
+              const text = merged.map(r=> r.start===r.end ? `${r.start}` : `${r.start}-${r.end}`).join(', ');
+              hint.style.color='#10b981';
+              hint.textContent = '有效区间：' + text;
+              // 回写规范化结果，避免 Shift 连选产生重复边界
+              rangeInput.value = text;
+              return merged;
+            }
+
+            document.getElementById('btnParse').onclick = validateRanges;
+            document.getElementById('btnClear').onclick = ()=>{ rangeInput.value=''; hint.style.color='#6b7280'; hint.textContent = '提示：页码越界会自动校正到 1~' + total + '。'; };
+
+            document.getElementById('btnConfirmSplit').onclick = ()=>{
+              const merged = validateRanges();
+              if (!merged || merged.length===0) { showAlert('请先选择或输入有效区间','error'); return; }
+              showLoading();
+              fetch('/pdf/split', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ filename, splits: merged })
+              }).then(r=>r.json()).then(resp=>{
+                if (!resp.success) { showAlert(resp.error||'拆分失败','error'); return; }
+                showAlert('拆分完成','success');
+                downloadFile(resp.download);
+                document.getElementById(modalId).remove();
+              }).catch(err=> showAlert('拆分失败: '+err.message,'error'))
+              .finally(()=> hideLoading());
+            };
+        })
+        .catch(err=> showAlert('读取页数失败: '+err.message,'error'))
+        .finally(()=> hideLoading());
+    }
+    // 全局拖拽拦截，防止浏览器直接打开文件
+    window.addEventListener('dragover', function(e){ e.preventDefault(); });
+    window.addEventListener('drop', function(e){ e.preventDefault(); });
+    // 捕获阶段也阻止，防止浏览器默认打开文件
+    document.addEventListener('dragover', function(e){ e.preventDefault(); }, true);
+    document.addEventListener('drop', function(e){ e.preventDefault(); }, true);
+    </script>
+</body>
+</html>

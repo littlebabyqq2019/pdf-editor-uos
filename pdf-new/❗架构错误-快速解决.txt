@@ -1,0 +1,196 @@
+========================================
+❗ 架构错误快速解决指南
+========================================
+
+🔴 错误信息：
+exec format error
+
+🔍 错误原因：
+Docker镜像架构与统信系统CPU架构不匹配
+
+========================================
+第一步：确认统信系统架构
+========================================
+
+📋 在统信电脑上运行：
+chmod +x 统信系统架构诊断.sh
+./统信系统架构诊断.sh
+
+📊 查看输出结果：
+
+【情况A】如果显示 "x86_64"
+  → 架构正确，错误另有原因
+  → 检查：镜像是否损坏？Docker版本是否过旧？
+  → 解决：重新传输镜像文件，或升级Docker
+
+【情况B】如果显示 "aarch64" 或 "arm64" ⭐最可能⭐
+  → 这就是问题原因！
+  → 需要重新构建ARM64架构的镜像
+  → 请继续下面的步骤
+
+========================================
+第二步：重新构建ARM64镜像（在Windows电脑）
+========================================
+
+💻 在Windows电脑的项目目录执行：
+
+.\docker-build-arm64.bat
+
+⏱️ 注意：
+• 构建时间较长（30分钟-1小时）
+• 这是跨架构构建，需要模拟ARM环境
+• 请耐心等待，不要中断
+
+✅ 构建完成后会生成：
+pdf-editor-image-arm64.tar
+
+========================================
+第三步：传输新镜像到统信系统
+========================================
+
+📦 传输文件：
+pdf-editor-image-arm64.tar → 统信电脑
+
+========================================
+第四步：在统信系统上重新部署
+========================================
+
+🔧 在统信电脑上执行以下命令：
+
+# 1. 清理旧的容器和镜像
+docker stop pdf-editor 2>/dev/null
+docker rm pdf-editor 2>/dev/null
+docker rmi pdf-editor:latest 2>/dev/null
+
+# 2. 加载新的ARM64镜像
+docker load -i pdf-editor-image-arm64.tar
+
+# 3. 确认镜像架构
+docker inspect pdf-editor:latest | grep Architecture
+# 应该显示: "Architecture": "arm64"
+
+# 4. 运行容器
+docker run -d \
+  --name pdf-editor \
+  -p 5000:5000 \
+  -v ~/pdf-editor/processed:/app/processed \
+  -e TZ=Asia/Shanghai \
+  --restart unless-stopped \
+  pdf-editor:latest
+
+# 5. 等待启动（约30秒）
+sleep 30
+
+# 6. 检查状态
+docker ps | grep pdf-editor
+docker logs pdf-editor
+
+# 7. 测试访问
+curl http://localhost:5000
+
+========================================
+第五步：验证部署
+========================================
+
+✅ 如果成功，应该看到：
+• docker ps 显示容器正在运行
+• docker logs 显示应用启动日志
+• curl 返回HTML内容
+• 浏览器可以访问 http://localhost:5000
+
+❌ 如果失败：
+• 查看日志: docker logs pdf-editor
+• 运行诊断: ./统信系统架构诊断.sh
+• 查看报告: cat docker-arch-report.txt
+
+========================================
+备选方案：直接在统信系统上构建
+========================================
+
+如果在Windows上构建ARM镜像太慢或有问题：
+
+📦 准备源代码文件：
+将以下文件传到统信系统：
+• Dockerfile
+• .dockerignore
+• app.py
+• file_manager.py
+• pdf_processor.py
+• image_processor.py
+• requirements.txt
+• templates/ (整个目录)
+
+🔧 在统信系统上构建：
+
+# 1. 进入项目目录
+cd /path/to/project
+
+# 2. 构建镜像
+docker build -t pdf-editor:latest .
+
+# 3. 运行容器（同上）
+docker run -d --name pdf-editor -p 5000:5000 \
+  -v ~/pdf-editor/processed:/app/processed \
+  -e TZ=Asia/Shanghai --restart unless-stopped \
+  pdf-editor:latest
+
+========================================
+架构对照表
+========================================
+
+统信系统架构 | 需要的镜像      | 使用的构建脚本
+------------|----------------|----------------
+x86_64      | AMD64          | docker-build.bat
+aarch64     | ARM64          | docker-build-arm64.bat ⭐
+arm64       | ARM64          | docker-build-arm64.bat ⭐
+armv7l      | ARM/v7         | 需要额外配置
+
+========================================
+常见问题
+========================================
+
+Q1: 如何快速确认是架构问题？
+A: 在统信系统运行: uname -m
+   如果显示 aarch64 或 arm64，就是架构问题
+
+Q2: Windows上构建ARM镜像很慢正常吗？
+A: 是的，这是正常现象。跨架构构建需要QEMU模拟。
+
+Q3: 可以跳过重新构建，直接运行吗？
+A: 不行，架构不匹配无法运行，必须重新构建。
+
+Q4: 重新构建后还需要配置开机自启吗？
+A: 不需要，重新部署时已经包含 --restart unless-stopped
+
+========================================
+需要帮助？
+========================================
+
+请提供以下信息：
+
+1. 统信系统架构
+   uname -m
+
+2. 诊断报告
+   ./统信系统架构诊断.sh
+   cat docker-arch-report.txt
+
+3. 容器日志
+   docker logs pdf-editor 2>&1 | tail -50
+
+========================================
+总结
+========================================
+
+✅ 问题原因: 镜像架构与系统不匹配
+
+✅ 解决方法: 
+   1. 确认架构（运行诊断脚本）
+   2. 重新构建对应架构的镜像
+   3. 重新部署
+
+✅ 预期结果: 
+   容器正常运行，可以访问 http://localhost:5000
+
+========================================
+

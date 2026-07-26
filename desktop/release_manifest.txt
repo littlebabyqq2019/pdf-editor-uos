@@ -1,0 +1,9 @@
+PDF编辑工具集成版 UOS 发布包
+版本: 1.0.0
+包含内容:
+- 可执行文件: bin/PDF编辑工具集成版
+- 启动脚本: desktop/start_pdf_editor.sh
+- 桌面快捷方式: desktop/pdf-editor.desktop
+- 安装脚本: desktop/install_uos.sh
+- systemd服务: desktop/pdf-editor.service
+- 图标目录: icons/

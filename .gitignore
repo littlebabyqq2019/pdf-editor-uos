@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+pdf_editor_env/
+pdf-new/pdf_editor_env/
+
+# Flask
+instance/
+.webassets-cache
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Application specific
+uploads/
+processed/
+*.log
+startup.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build
+build/
+dist/
+*.egg-info/
+*.spec
+
+# Large files
+*.tar
+*.tar.gz

@@ -1,0 +1,193 @@
+========================================
+PDF编辑工具 Docker镜像打包完成
+========================================
+
+📦 镜像信息
+----------------------------------------
+镜像名称: pdf-editor:latest
+镜像大小: 1.37GB
+导出文件: pdf-editor-image.tar
+文件大小: 约 333 MB（压缩后）
+架构: Linux/AMD64 (x86_64)
+适用系统: 统信UOS、deepin、Ubuntu、CentOS等x86_64架构Linux系统
+
+✅ 已完成的工作
+----------------------------------------
+1. ✓ 创建了优化的Dockerfile（使用国内阿里云镜像源）
+2. ✓ 构建了适用于统信系统的Linux/AMD64架构镜像
+3. ✓ 导出了镜像文件 pdf-editor-image.tar
+4. ✓ 创建了部署脚本和说明文档
+5. ✓ 配置了开机自启功能（Docker服务 + 容器自动重启）
+
+📂 相关文件
+----------------------------------------
+• pdf-editor-image.tar           - Docker镜像文件（需要传输到统信系统）
+• 统信系统快速部署.sh           - 自动部署脚本（已配置开机自启）
+• 统信系统部署说明.md           - 详细部署文档
+• 开机自启配置说明.md           - 开机自启详细说明
+• docker-compose.yml            - Docker Compose配置文件
+• Dockerfile                    - Docker镜像构建文件
+• .dockerignore                 - Docker忽略文件配置
+
+🚀 在统信系统上部署（方法一：使用自动脚本）★推荐★
+----------------------------------------
+1. 将以下文件传输到统信系统：
+   - pdf-editor-image.tar
+   - 统信系统快速部署.sh
+
+2. 在统信系统上执行：
+   chmod +x 统信系统快速部署.sh
+   ./统信系统快速部署.sh
+
+3. 等待部署完成后，访问：
+   http://localhost:5000
+
+✅ 自动完成的配置：
+   • Docker服务开机自启
+   • 容器自动重启策略
+   • 系统重启后应用自动运行
+
+🚀 在统信系统上部署（方法二：手动部署）
+----------------------------------------
+1. 传输镜像文件到统信系统
+
+2. 加载镜像：
+   docker load -i pdf-editor-image.tar
+
+3. 运行容器：
+   docker run -d \
+     --name pdf-editor \
+     -p 5000:5000 \
+     -v ~/pdf-editor/processed:/app/processed \
+     -e TZ=Asia/Shanghai \
+     --restart unless-stopped \
+     pdf-editor:latest
+
+4. 访问应用：
+   http://localhost:5000
+
+🔧 常用管理命令
+----------------------------------------
+• 查看容器状态:  docker ps
+• 查看日志:      docker logs pdf-editor
+• 停止容器:      docker stop pdf-editor
+• 启动容器:      docker start pdf-editor
+• 重启容器:      docker restart pdf-editor
+• 删除容器:      docker rm -f pdf-editor
+• 进入容器:      docker exec -it pdf-editor bash
+
+📊 功能特性
+----------------------------------------
+✓ PDF去红头及公章
+✓ PDF转Word文档
+✓ 图片转PDF
+✓ 图片去背景
+✓ PDF页面管理（删除、合并、拆分）
+✓ 支持多文件批量处理
+✓ Web界面操作简单
+✓ 支持局域网访问
+
+🌐 网络访问
+----------------------------------------
+• 本机访问: http://localhost:5000
+• 局域网访问: http://统信系统IP:5000
+
+查看统信系统IP地址：
+  ip addr show | grep "inet " | grep -v 127.0.0.1
+
+如需局域网访问，请确保防火墙开放5000端口：
+  sudo ufw allow 5000/tcp
+  或
+  sudo firewall-cmd --permanent --add-port=5000/tcp
+  sudo firewall-cmd --reload
+
+💾 数据持久化
+----------------------------------------
+处理后的文件保存在：
+  ~/pdf-editor/processed
+
+该目录会挂载到容器内，即使删除容器，数据也不会丢失。
+
+⚠️ 注意事项
+----------------------------------------
+1. 确保统信系统架构为 x86_64 (AMD64)
+   查看方法: uname -m
+   如果显示其他架构（如 aarch64），需要重新构建对应架构的镜像
+
+2. 确保Docker已安装并运行
+   安装: sudo apt install docker.io
+   启动: sudo systemctl start docker
+   开机自启: sudo systemctl enable docker
+
+3. 确保有足够的磁盘空间（至少2GB空闲空间）
+
+4. 如需修改端口（例如改为8080）:
+   docker run -d --name pdf-editor -p 8080:5000 pdf-editor:latest
+   然后访问 http://localhost:8080
+
+5. 生产环境建议配置：
+   - 使用nginx反向代理
+   - 配置HTTPS
+   - 限制资源使用（--memory, --cpus）
+
+🔄 开机自启说明
+----------------------------------------
+✅ 使用快速部署脚本后，开机自启已自动配置！
+
+系统重启后会自动：
+  1. 启动Docker服务
+  2. 启动pdf-editor容器
+  3. 应用自动可用（约30-60秒）
+
+验证方法：
+  • 重启系统: sudo reboot
+  • 启动后检查: docker ps | grep pdf-editor
+  • 访问应用: http://localhost:5000
+
+详细说明请参考: 开机自启配置说明.md
+
+🔄 更新部署
+----------------------------------------
+如需更新应用到新版本：
+
+1. 停止并删除旧容器：
+   docker stop pdf-editor
+   docker rm pdf-editor
+
+2. 删除旧镜像（可选）：
+   docker rmi pdf-editor:latest
+
+3. 加载新镜像：
+   docker load -i pdf-editor-image.tar
+
+4. 重新运行容器（使用上述运行命令）
+
+📞 故障排除
+----------------------------------------
+Q: 容器无法启动？
+A: 查看日志: docker logs pdf-editor
+
+Q: 端口被占用？
+A: 更换端口: docker run -d --name pdf-editor -p 8080:5000 pdf-editor:latest
+
+Q: 无法访问？
+A: 检查防火墙设置，确保端口已开放
+
+Q: 权限问题？
+A: 使用sudo执行docker命令，或将用户加入docker组：
+   sudo usermod -aG docker $USER
+   然后重新登录
+
+Q: 容器运行但无法访问？
+A: 检查容器是否正常运行: docker ps
+   查看容器日志: docker logs pdf-editor
+   测试端口: curl http://localhost:5000
+
+📚 更多信息
+----------------------------------------
+详细文档请参考：统信系统部署说明.md
+
+========================================
+祝您使用愉快！
+========================================
+

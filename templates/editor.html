@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF编辑器</title>
+    
+    <!-- TailwindCSS -->
+    <script src="/editor/static/js/tailwind.min.js"></script>
+    
+    <!-- PDF.js -->
+    <script src="/editor/static/js/pdf.min.js"></script>
+    
+    <!-- Fabric.js -->
+    <script src="/editor/static/js/fabric.min.js"></script>
+    
+    <!-- jsPDF -->
+    <script src="/editor/static/js/jspdf.umd.min.js"></script>
+    
+    <!-- Sortable.js -->
+    <script src="/editor/static/js/Sortable.min.js"></script>
+    
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="/editor/static/css/style.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 主容器 -->
+    <div id="app" class="h-screen flex flex-col">
+        
+        <!-- 顶部工具栏 -->
+        <div class="shadow-md px-4 py-3 flex items-center justify-between" style="background: linear-gradient(to right, #3b82f6, #c4b5fd);">
+            <!-- 左侧：Logo -->
+            <div class="flex items-center space-x-4">
+                <a href="/" class="text-white px-4 py-2 rounded-lg hover:bg-white hover:bg-opacity-20 transition flex items-center space-x-2" title="返回主页">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    <span class="text-sm font-medium">返回</span>
+                </a>
+                <h1 class="text-xl font-bold text-white flex items-center space-x-2">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>PDF编辑器</span>
+                </h1>
+            </div>
+            
+            <!-- 中间：编辑工具 -->
+            <div id="toolBar" class="flex items-center space-x-2 hidden">
+                <button id="selectTool" class="tool-btn active" title="选择工具">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path>
+                    </svg>
+                    <span class="text-xs">选择</span>
+                </button>
+                
+                <button id="textTool" class="tool-btn" title="添加文字">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span class="text-xs">文字</span>
+                </button>
+                
+                <button id="eraseTool" class="tool-btn" title="擦除工具">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    <span class="text-xs">擦除</span>
+                </button>
+                
+                <button id="highlightTool" class="tool-btn" title="高亮显示">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                    </svg>
+                    <span class="text-xs">高亮</span>
+                </button>
+                
+                <button id="underlineTool" class="tool-btn" title="下划线">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                    </svg>
+                    <span class="text-xs">下划线</span>
+                </button>
+                
+                <button id="shapeTool" class="tool-btn" title="添加形状">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z"></path>
+                    </svg>
+                    <span class="text-xs">形状</span>
+                </button>
+                
+                <div class="border-l border-gray-300 h-8 mx-2"></div>
+                
+                <button id="undoBtn" class="tool-btn" title="撤销 (Ctrl+Z)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                    </svg>
+                </button>
+                
+                <button id="redoBtn" class="tool-btn" title="重做 (Ctrl+Y)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6"></path>
+                    </svg>
+                </button>
+                
+                <button id="deleteBtn" class="tool-btn" title="删除选中">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                </button>
+                
+                <div class="border-l border-gray-300 h-8 mx-2"></div>
+                
+                <!-- 缩放控件 -->
+                <button id="zoomOutBtn" class="tool-btn" title="缩小 (Ctrl+-)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path>
+                    </svg>
+                </button>
+                
+                <input type="text" id="zoomInput" value="100%" class="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-base font-bold text-gray-800 w-24 text-center focus:border-blue-500 focus:outline-none transition" title="输入缩放比例（25-400）" />
+                
+                <button id="zoomInBtn" class="tool-btn" title="放大 (Ctrl++)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path>
+                    </svg>
+                </button>
+                
+                <button id="zoomResetBtn" class="tool-btn" title="重置缩放 (Ctrl+0)">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- 右侧：保存按钮 -->
+            <div class="flex items-center space-x-2">
+                <button id="savePdfBtn" class="text-white px-8 py-3 rounded-lg flex items-center space-x-2 transition hidden shadow-lg hover:shadow-xl" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-weight: 600;">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    <span>保存并下载</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 文字工具属性面板 -->
+        <div id="textToolbar" class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-blue-200 px-6 py-4 flex items-center justify-center space-x-6 hidden shadow-sm">
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">字体:</span>
+                <select id="fontFamily" class="border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition">
+                    <option value="Arial">Arial</option>
+                    <option value="Microsoft YaHei">微软雅黑</option>
+                    <option value="SimSun">宋体</option>
+                    <option value="SimHei">黑体</option>
+                    <option value="KaiTi">楷体</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                </select>
+            </label>
+            
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">大小:</span>
+                <input type="number" id="fontSize" value="16" min="8" max="72" class="border-2 border-gray-300 rounded-lg px-3 py-2 w-20 text-sm focus:border-blue-500 focus:outline-none transition">
+            </label>
+            
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">颜色:</span>
+                <input type="color" id="fontColor" value="#000000" class="border-2 border-gray-300 rounded-lg h-10 w-16 cursor-pointer">
+            </label>
+            
+            <button id="boldBtn" class="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition font-bold" title="加粗">
+                <strong>B</strong>
+            </button>
+            
+            <button id="italicBtn" class="px-4 py-2 border-2 border-gray-300 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition italic" title="斜体">
+                <em>I</em>
+            </button>
+        </div>
+        
+        <!-- 下划线工具属性面板 -->
+        <div id="underlineToolbar" class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-blue-200 px-6 py-4 flex items-center justify-center space-x-6 hidden shadow-sm">
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">颜色:</span>
+                <input type="color" id="underlineColor" value="#000000" class="border-2 border-gray-300 rounded-lg h-10 w-16 cursor-pointer">
+            </label>
+            
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">粗细:</span>
+                <input type="number" id="underlineWidth" value="2" min="1" max="10" class="border-2 border-gray-300 rounded-lg px-3 py-2 w-20 text-sm focus:border-blue-500 focus:outline-none transition">
+            </label>
+        </div>
+        
+        <!-- 形状工具属性面板 -->
+        <div id="shapeToolbar" class="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 border-blue-200 px-6 py-4 flex items-center justify-center space-x-6 hidden shadow-sm">
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">形状:</span>
+                <select id="shapeType" class="border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none transition">
+                    <option value="rect">矩形</option>
+                    <option value="circle">圆形</option>
+                    <option value="line">直线</option>
+                </select>
+            </label>
+            
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">填充颜色:</span>
+                <input type="color" id="shapeFill" value="#ffffff" class="border-2 border-gray-300 rounded-lg h-10 w-16 cursor-pointer">
+            </label>
+            
+            <label class="flex items-center space-x-2">
+                <span class="text-sm font-semibold text-gray-700">边框颜色:</span>
+                <input type="color" id="shapeStroke" value="#000000" class="border-2 border-gray-300 rounded-lg h-10 w-16 cursor-pointer">
+            </label>
+            
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="shapeFilled" checked class="rounded">
+                <span class="text-sm text-gray-700">填充形状</span>
+            </label>
+        </div>
+        
+        <!-- 主内容区 -->
+        <div class="flex-1 flex overflow-hidden">
+            
+            <!-- 左侧：页面预览 -->
+            <div id="pagePreviewPanel" class="w-64 bg-white border-r border-gray-200 overflow-y-auto hidden">
+                <div class="p-4">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-700">页面预览</h2>
+                    <div id="pagesList" class="space-y-2">
+                        <!-- 页面缩略图将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 中间：编辑区域 -->
+            <div class="flex-1 bg-gray-200 overflow-hidden relative">
+                <!-- 上传提示 -->
+                <div id="uploadPrompt" class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-center p-12 bg-white rounded-3xl border-3 border-dashed border-blue-300 hover:border-blue-400 transition-all duration-300 hover:shadow-2xl" style="width: 550px; border-width: 3px;">
+                        <!-- 紫色文档图标 -->
+                        <div class="mb-6">
+                            <svg class="w-24 h-24 mx-auto text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-800 mb-4">上传PDF文件</h3>
+                        <p class="text-gray-600 mb-8 text-lg">拖拽文件到这里，或点击选择文件</p>
+                        <label class="cursor-pointer inline-block">
+                            <input type="file" id="pdfUploadDrop" accept="application/pdf" class="hidden">
+                            <span class="text-white px-10 py-4 rounded-xl inline-block transition font-semibold text-lg shadow-lg hover:shadow-xl transform hover:scale-105" style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);">选择文件</span>
+                        </label>
+                        <p class="text-sm text-gray-500 mt-6 font-medium">最大支持 50MB</p>
+                    </div>
+                </div>
+                
+                <!-- 编辑画布容器 -->
+                <div id="canvasContainer" class="hidden h-full overflow-auto relative">
+                    <!-- 标尺和画布将在这里动态生成 -->
+                    <div id="editorWrapper" class="relative">
+                        <!-- 左上角方块 -->
+                        <div id="rulerCorner" class="absolute top-0 left-0 w-8 h-8 bg-gray-400 z-20"></div>
+                        
+                        <!-- 顶部标尺 -->
+                        <div id="horizontalRuler" class="absolute top-0 left-8 h-8 bg-gray-300 z-10 overflow-hidden">
+                            <canvas id="hRulerCanvas"></canvas>
+                        </div>
+                        
+                        <!-- 左侧标尺 -->
+                        <div id="verticalRuler" class="absolute top-8 left-0 w-8 bg-gray-300 z-10 overflow-hidden">
+                            <canvas id="vRulerCanvas"></canvas>
+                        </div>
+                        
+                        <!-- 画布区域 -->
+                        <div id="canvasArea" class="absolute top-8 left-8">
+                            <canvas id="pdfCanvas"></canvas>
+                            <canvas id="editCanvas"></canvas>
+                        </div>
+                        
+                        <!-- 辅助线 -->
+                        <div id="guideLine" class="hidden">
+                            <div id="guideLineH" class="absolute z-30"></div>
+                            <div id="guideLineV" class="absolute z-30"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+    
+    <!-- 加载提示 -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 flex flex-col items-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mb-4"></div>
+            <p class="text-lg font-semibold text-gray-700">处理中...</p>
+        </div>
+    </div>
+    
+    <!-- JavaScript -->
+    <script src="/editor/static/js/app.js"></script>
+    <script src="/editor/static/js/pdfHandler.js"></script>
+    <script src="/editor/static/js/editor.js"></script>
+    <script src="/editor/static/js/ruler.js"></script>
+    <script src="/editor/static/js/pdfGenerator.js"></script>
+</body>
+</html>

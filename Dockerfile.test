@@ -1,0 +1,15 @@
+# 测试Dockerfile - 验证Flask安装
+FROM docker.m.daocloud.io/library/python:3.9-slim
+
+WORKDIR /app
+
+# 直接安装Flask测试
+RUN pip install --no-cache-dir Flask==2.3.3
+
+# 测试Flask是否可用
+RUN python -c "import flask; print('Flask version:', flask.__version__)"
+
+# 复制简单的测试应用
+COPY app.py /app/
+
+CMD ["python", "-c", "import flask; print('Flask is available')"]

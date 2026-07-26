@@ -1,0 +1,324 @@
+/* PDF编辑器 - 主样式文件 */
+
+/* 全局样式 */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 工具按钮样式 */
+.tool-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    background-color: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 70px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tool-btn:hover {
+    background-color: #f3f4f6;
+    border-color: #3b82f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tool-btn.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
+}
+
+.tool-btn svg {
+    margin-bottom: 2px;
+}
+
+/* 页面预览项 */
+.page-item {
+    position: relative;
+    cursor: pointer;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.page-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+    transform: translateY(-2px);
+}
+
+.page-item.active {
+    border-color: #3b82f6;
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+    transform: scale(1.05);
+}
+
+.page-item img {
+    width: 100%;
+    display: block;
+}
+
+.page-number {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.page-delete {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: rgba(239, 68, 68, 0.9);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.page-item:hover .page-delete {
+    opacity: 1;
+}
+
+.page-delete:hover {
+    background-color: rgba(220, 38, 38, 1);
+}
+
+/* 拖拽样式 */
+.sortable-ghost {
+    opacity: 0.4;
+    background-color: #e0e7ff;
+}
+
+.sortable-drag {
+    opacity: 1;
+}
+
+/* 画布容器 */
+#canvasContainer {
+    background-image: 
+        linear-gradient(45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(-45deg, #f0f0f0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f0f0f0 75%),
+        linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    text-align: center;  /* 使编辑区域水平居中 */
+}
+
+#editorWrapper {
+    display: inline-block;
+    margin: 40px;
+    transition: transform 0.3s ease;  /* 缩放过渡动画 */
+}
+
+#canvasArea {
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+#pdfCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#editCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* 标尺样式 */
+#rulerCorner {
+    border-right: 1px solid #999;
+    border-bottom: 1px solid #999;
+}
+
+#horizontalRuler {
+    border-bottom: 1px solid #999;
+}
+
+#verticalRuler {
+    border-right: 1px solid #999;
+}
+
+/* 辅助线样式 - 淡蓝色 */
+#guideLineH,
+#guideLineV {
+    pointer-events: none;
+    background-color: rgba(96, 165, 250, 0.6);
+    box-shadow: 0 0 3px rgba(96, 165, 250, 0.4);
+}
+
+#guideLineH {
+    width: 100%;
+    left: 0;
+    height: 2px;
+}
+
+#guideLineV {
+    height: 100%;
+    top: 0;
+    width: 2px;
+}
+
+/* 拖拽上传区域 */
+.drag-over {
+    border-color: #3b82f6 !important;
+    background-color: rgba(59, 130, 246, 0.05) !important;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* 加载动画 */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* 响应式设计 */
+@media (max-width: 1024px) {
+    .tool-btn span {
+        display: none;
+    }
+    
+    .tool-btn {
+        min-width: 40px;
+    }
+}
+
+/* 选中对象的控制点样式（Fabric.js会自动处理，这里是备用） */
+.canvas-container {
+    margin: 0 !important;
+}
+
+/* 禁用文本选择（在编辑模式下） */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* 十字光标 */
+.crosshair-cursor {
+    cursor: crosshair;
+}
+
+/* 工具提示 */
+[title] {
+    position: relative;
+}
+
+/* 隐藏输入框 */
+input[type="file"] {
+    display: none;
+}
+
+/* 按钮禁用状态 */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 颜色选择器样式优化 */
+input[type="color"] {
+    cursor: pointer;
+    padding: 2px;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+/* 文本输入优化 */
+input[type="number"] {
+    appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+}
+
+/* 下拉选择框样式 */
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* 复选框样式优化 */
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}

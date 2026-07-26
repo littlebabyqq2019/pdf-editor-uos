@@ -1,0 +1,46 @@
+"""创建Windows版本信息文件"""
+import sys
+
+version_info = """# UTF-8
+#
+# For more details about fixed file info:
+# See http://msdn.microsoft.com/en-us/library/ms646997.aspx
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 4, 0, 0),
+    prodvers=(1, 4, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        u'080404b0',
+        [StringStruct(u'CompanyName', u'PDF编辑工具'),
+        StringStruct(u'FileDescription', u'PDF文件编辑软件 - 支持去红头、去公章、转换等多种功能'),
+        StringStruct(u'FileVersion', u'1.4.0.0'),
+        StringStruct(u'InternalName', u'PDF Editor'),
+        StringStruct(u'LegalCopyright', u'Copyright (c) 2025'),
+        StringStruct(u'OriginalFilename', u'PDF编辑工具.exe'),
+        StringStruct(u'ProductName', u'PDF编辑工具'),
+        StringStruct(u'ProductVersion', u'1.4.0.0')])
+      ]
+    ),
+    VarFileInfo([VarStruct(u'Translation', [2052, 1200])])
+  ]
+)
+"""
+
+try:
+    with open('version_info.txt', 'w', encoding='utf-8') as f:
+        f.write(version_info)
+    print("[SUCCESS] Created version_info.txt")
+except Exception as e:
+    print(f"[ERROR] Failed to create version info: {e}")
+    sys.exit(1)
+

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  pdf-editor:
+    build: .
+    image: pdf-editor:latest
+    container_name: pdf-editor
+    ports:
+      - "5000:5000"
+    volumes:
+      # 持久化存储处理后的文件
+      - ./processed:/app/processed
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+

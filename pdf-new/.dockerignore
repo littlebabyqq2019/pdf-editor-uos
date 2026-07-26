@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+pdf_editor_env/
+venv/
+env/
+ENV/
+
+# 临时文件和数据
+uploads/
+processed/
+
+# 构建文件
+build/
+dist/
+*.egg-info/
+*.spec
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# 打包相关
+*.exe
+*.bat
+build_exe.bat
+create_icon.py
+create_version_info.py
+app_icon.ico
+version_info.txt
+
+# 文档和说明
+README.md
+BUILD_README.md
+readme.txt
+使用说明.txt
+*.png
+
+# 其他
+.DS_Store
+Thumbs.db
+

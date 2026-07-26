@@ -1,0 +1,104 @@
+# Python编译文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 分发/打包
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv/
+pdf_editor_env/
+pdf-new/pdf_editor_env/
+pdf-editor（draw）/venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# 日志文件
+*.log
+
+# 测试文件
+test*.py
+*_test.py
+
+# 文档
+*.md
+*.txt.bak
+
+# 临时和运行时文件（会在容器中重新创建）
+uploads/*
+processed/*
+*.pdf
+*.jpg
+*.png
+*.jpeg
+*.bmp
+*.tiff
+
+# Windows批处理文件
+*.bat
+
+# Docker相关
+.dockerignore
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+build_docker.sh
+build_docker.ps1
+build_quick.ps1
+daemon.json
+*.tar
+*.tar.gz
+*.tar.xz
+*.zip
+
+# 图标和版本信息生成脚本
+create_icon.py
+create_version_info.py
+*.ico
+
+# 分析和检查脚本
+analyze_*.py
+check_*.py
+quick_check.py
+
+# 保留空目录的.gitkeep文件除外
+!.gitkeep

@@ -1,0 +1,88 @@
+# 多阶段构建 - 优化版Dockerfile
+# 预计可减少30-40%体积
+
+# ========== 构建阶段 ==========
+FROM python:3.9-slim AS builder
+
+WORKDIR /build
+
+# 安装构建依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ \
+    libglib2.0-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制requirements
+COPY requirements.txt /tmp/requirements_main.txt
+COPY pdf-new/requirements.txt /tmp/requirements_pdf_new.txt
+COPY pdf-editor（draw）/requirements.txt /tmp/requirements_pdf_editor.txt
+
+# 合并requirements并安装到临时目录
+RUN cat /tmp/requirements_main.txt /tmp/requirements_pdf_new.txt /tmp/requirements_pdf_editor.txt | \
+    grep -v "^#" | grep -v "^$" | grep -v "pyinstaller" | sort -u > /tmp/requirements_final.txt && \
+    pip install --no-cache-dir --prefix=/install \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    -r /tmp/requirements_final.txt
+
+# ========== 运行阶段 ==========
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    FLASK_APP=app.py \
+    FLASK_ENV=production \
+    TZ=Asia/Shanghai \
+    PATH="/install/bin:${PATH}" \
+    PYTHONPATH="/install/lib/python3.9/site-packages"
+
+# 只安装运行时依赖（不含开发工具）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    libgl1 \
+    libjpeg62-turbo \
+    zlib1g \
+    libpng16-16 \
+    libtiff5 \
+    libwebp6 \
+    tzdata \
+    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# 从构建阶段复制Python包
+COPY --from=builder /install /install
+
+# 只复制必要的应用文件
+COPY app.py pdf_processor.py image_processor.py file_manager.py /app/
+COPY templates/ /app/templates/
+COPY static/ /app/static/
+COPY pdf-new/*.py /app/pdf-new/
+COPY pdf-editor（draw）/app.py /app/pdf-editor（draw）/
+COPY pdf-editor（draw）/static/ /app/pdf-editor（draw）/static/
+COPY pdf-editor（draw）/templates/ /app/pdf-editor（draw）/templates/
+
+# 创建必要的目录
+RUN mkdir -p /app/uploads /app/processed && \
+    chmod -R 755 /app && \
+    chmod -R 777 /app/uploads /app/processed
+
+# 暴露端口
+EXPOSE 5000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:5000/', timeout=5)" || exit 1
+
+# 启动应用
+CMD ["python", "app.py"]

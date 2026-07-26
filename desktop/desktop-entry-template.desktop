@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=PDF编辑工具集成版
+Comment=PDF处理与编辑工具
+Exec=/opt/pdf-editor/start_pdf_editor.sh
+Icon=/opt/pdf-editor/icons/pdf-editor.png
+Terminal=false
+Categories=Office;Utility;
+StartupNotify=true
