@@ -37,7 +37,6 @@ desktop.ini
 build/
 dist/
 *.egg-info/
-*.spec
 
 # Large files
 *.tar
