@@ -1,0 +1,153 @@
+name: Build Windows AMD64 executable
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - '.github/workflows/build-windows-amd64.yml'
+      - 'windows_amd64.spec'
+      - 'requirements.txt'
+      - 'app.py'
+      - '.version'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-amd64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Parse version
+        id: version
+        shell: bash
+        run: |
+          if [ -f .version ]; then
+            source .version
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "release_name=PDF编辑工具-Windows-amd64-v$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version=1.0.0" >> $GITHUB_OUTPUT
+            echo "release_name=PDF编辑工具-Windows-amd64-v1.0.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Build Windows AMD64 executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts
+          New-Item -ItemType Directory -Force -Path dist/windows-amd64
+
+          # 生成图标（如果失败则跳过）
+          if (Test-Path "desktop/generate_icon.py") {
+            try {
+              python desktop/generate_icon.py --ico 1.ico 2>$null
+            } catch {
+              Write-Host "Icon generation skipped"
+            }
+          }
+
+          # 使用 PyInstaller 构建
+          pyinstaller --clean --noconfirm `
+            --distpath dist/windows-amd64 `
+            --workpath build/pyinstaller-windows-amd64 `
+            windows_amd64.spec
+
+          # 检查可执行文件是否生成
+          if (Test-Path "dist/windows-amd64/PDF编辑工具集成版.exe") {
+            Write-Host "✓ Executable built successfully"
+
+            # 创建简化版压缩包（仅可执行文件）
+            Compress-Archive -Path "dist/windows-amd64/PDF编辑工具集成版.exe" `
+              -DestinationPath "artifacts/pdf-editor-windows-amd64.zip" -Force
+
+            # 创建完整发行包
+            $RELEASE_NAME = "${{ steps.version.outputs.release_name }}"
+            $RELEASE_DIR = "dist/$RELEASE_NAME"
+            New-Item -ItemType Directory -Force -Path "$RELEASE_DIR/bin"
+            New-Item -ItemType Directory -Force -Path "$RELEASE_DIR/docs"
+
+            # 复制文件
+            Copy-Item "dist/windows-amd64/PDF编辑工具集成版.exe" "$RELEASE_DIR/bin/"
+
+            # 复制文档（如果存在）
+            if (Test-Path "CHANGELOG_UOS.md") {
+              Copy-Item "CHANGELOG_UOS.md" "$RELEASE_DIR/docs/CHANGELOG.md"
+            }
+
+            # 创建启动脚本
+            @"
+@echo off
+chcp 65001 >nul
+echo Starting PDF Editor...
+"%~dp0bin\PDF编辑工具集成版.exe"
+"@ | Out-File -FilePath "$RELEASE_DIR/启动PDF编辑器.bat" -Encoding ASCII
+
+            # 创建 README
+            @"
+# PDF编辑工具集成版 - Windows AMD64
+
+## 使用说明
+
+### 方式1：直接运行
+双击 启动PDF编辑器.bat
+
+### 方式2：命令行运行
+.\bin\PDF编辑工具集成版.exe
+
+程序启动后，浏览器访问: http://localhost:5000
+
+## 系统要求
+- Windows 10/11 (64位)
+- 无需安装 Python 环境
+
+## 端口配置
+默认端口: 5000
+如需修改，请编辑可执行文件的配置
+
+## 版本信息
+版本: ${{ steps.version.outputs.version }}
+架构: Windows AMD64
+"@ | Out-File -FilePath "$RELEASE_DIR/README.txt" -Encoding UTF8
+
+            # 打包完整发行版
+            Compress-Archive -Path "$RELEASE_DIR" `
+              -DestinationPath "artifacts/$RELEASE_NAME.zip" -Force
+
+            Write-Host "Build complete. Release: $RELEASE_NAME"
+          } else {
+            Write-Error "Executable not found!"
+            exit 1
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-editor-windows-amd64
+          path: artifacts/
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
