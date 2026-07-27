@@ -96,39 +96,28 @@ jobs:
             }
 
             # 创建启动脚本
-            @"
-@echo off
-chcp 65001 >nul
-echo Starting PDF Editor...
-"%~dp0bin\PDF编辑工具集成版.exe"
-"@ | Out-File -FilePath "$RELEASE_DIR/启动PDF编辑器.bat" -Encoding ASCII
+            echo "@echo off" > "$RELEASE_DIR/启动PDF编辑器.bat"
+            echo "chcp 65001 >nul" >> "$RELEASE_DIR/启动PDF编辑器.bat"
+            echo "echo Starting PDF Editor..." >> "$RELEASE_DIR/启动PDF编辑器.bat"
+            echo '"%~dp0bin\PDF编辑工具集成版.exe"' >> "$RELEASE_DIR/启动PDF编辑器.bat"
 
             # 创建 README
-            @"
-# PDF编辑工具集成版 - Windows AMD64
-
-## 使用说明
-
-### 方式1：直接运行
-双击 启动PDF编辑器.bat
-
-### 方式2：命令行运行
-.\bin\PDF编辑工具集成版.exe
-
-程序启动后，浏览器访问: http://localhost:5000
-
-## 系统要求
-- Windows 10/11 (64位)
-- 无需安装 Python 环境
-
-## 端口配置
-默认端口: 5000
-如需修改，请编辑可执行文件的配置
-
-## 版本信息
-版本: ${{ steps.version.outputs.version }}
-架构: Windows AMD64
-"@ | Out-File -FilePath "$RELEASE_DIR/README.txt" -Encoding UTF8
+            $version = "${{ steps.version.outputs.version }}"
+            "# PDF编辑工具集成版 - Windows AMD64" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Encoding UTF8
+            "" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "## 使用说明" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "双击 启动PDF编辑器.bat 即可启动" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "程序启动后，浏览器访问: http://localhost:5000" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "## 系统要求" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "- Windows 10/11 (64位)" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "- 无需安装 Python 环境" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "## 版本信息" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "版本: $version" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
+            "架构: Windows AMD64" | Out-File -FilePath "$RELEASE_DIR/README.txt" -Append -Encoding UTF8
 
             # 打包完整发行版
             Compress-Archive -Path "$RELEASE_DIR" `
