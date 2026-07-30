@@ -25,7 +25,9 @@ class FileManager:
             file_info['type'] = self._analyze_pdf_type(file_path)
         elif file_ext in ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']:
             file_info['type'] = 'image'
-        
+        elif file_ext in ['.doc', '.docx']:
+            file_info['type'] = 'word'
+
         return file_info
     
     def _analyze_pdf_type(self, file_path):
@@ -111,6 +113,8 @@ class FileManager:
                 return self._get_pdf_preview(file_path)
             elif file_ext in ['.jpg', '.jpeg', '.png', '.bmp', '.tiff']:
                 return self._get_image_preview(file_path)
+            elif file_ext in ['.doc', '.docx']:
+                return {'type': 'word', 'filename': os.path.basename(file_path)}
             else:
                 return {'error': '不支持的文件类型'}
                 

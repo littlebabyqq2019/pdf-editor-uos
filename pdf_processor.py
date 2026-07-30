@@ -207,17 +207,19 @@ class PDFProcessor:
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]  # JPEG质量85%
             _, img_encoded = cv2.imencode('.jpg', img, encode_param)
             img_bytes = img_encoded.tobytes()
-            
-            # 创建新页面
-            img_rect = fitz.Rect(0, 0, pix.width, pix.height)
-            new_page = new_doc.new_page(width=pix.width, height=pix.height)
+
+            # 创建新页面：使用原始页面的物理尺寸（point），而非渲染像素数，
+            # 否则页面会被渲染分辨率（1.5倍）放大，导致后续叠加的水印相对显小
+            page_rect = page.rect
+            img_rect = fitz.Rect(0, 0, page_rect.width, page_rect.height)
+            new_page = new_doc.new_page(width=page_rect.width, height=page_rect.height)
             new_page.insert_image(img_rect, stream=img_bytes)
-        
+
         print(f"\n[DEBUG] 所有页面处理完成")
         new_doc.save(output_path)
         new_doc.close()
         doc.close()
-    
+
     def _remove_seal_scan_pdf(self, input_path, output_path):
         """处理扫描型PDF：仅去公章 - 首页上部63%区域不处理，只处理有公章的页面"""
         doc = fitz.open(input_path)
@@ -245,17 +247,19 @@ class PDFProcessor:
                 print(f"[DEBUG] 第{page_num + 1}页：全页检测公章")
                 # 非首页：全页检测公章并处理
                 img = self._remove_all_red_from_image(img, is_first_page=False)
-            
+
             # 转换回PDF页面，使用JPEG格式和压缩以减少文件大小
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]  # JPEG质量85%
             _, img_encoded = cv2.imencode('.jpg', img, encode_param)
             img_bytes = img_encoded.tobytes()
-            
-            # 创建新页面
-            img_rect = fitz.Rect(0, 0, pix.width, pix.height)
-            new_page = new_doc.new_page(width=pix.width, height=pix.height)
+
+            # 创建新页面：使用原始页面的 point 尺寸，而非渲染像素尺寸，
+            # 避免因 1.5 倍渲染矩阵导致页面物理尺寸被放大
+            page_rect = page.rect
+            img_rect = fitz.Rect(0, 0, page_rect.width, page_rect.height)
+            new_page = new_doc.new_page(width=page_rect.width, height=page_rect.height)
             new_page.insert_image(img_rect, stream=img_bytes)
-        
+
         print(f"\n[DEBUG] 所有页面处理完成")
         new_doc.save(output_path)
         new_doc.close()
@@ -1977,29 +1981,34 @@ class PDFProcessor:
         """将文本型PDF转换为图片型PDF"""
         doc = fitz.open(input_path)
         new_doc = fitz.open()
-        
+
         for page_num in range(len(doc)):
             page = doc[page_num]
-            
+            # 记录原始页面的物理尺寸（单位：点），新页面必须保持这个尺寸，
+            # 否则后续叠加水印等操作使用的 pt 字号会与页面实际比例不匹配
+            orig_width = page.rect.width
+            orig_height = page.rect.height
+
             # 转换为适中分辨率图片，平衡质量和文件大小
             mat = fitz.Matrix(1.5, 1.5)  # 降低分辨率从2.0到1.5
             pix = page.get_pixmap(matrix=mat)
             img_data = pix.tobytes("png")
-            
+
             # 使用OpenCV进行图像优化
             nparr = np.frombuffer(img_data, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            
+
             # 转换回PDF页面，使用JPEG压缩
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 85]  # JPEG质量85%
             _, img_encoded = cv2.imencode('.jpg', img, encode_param)
             img_bytes = img_encoded.tobytes()
-            
-            # 创建新页面
-            img_rect = fitz.Rect(0, 0, pix.width, pix.height)
-            new_page = new_doc.new_page(width=pix.width, height=pix.height)
+
+            # 创建新页面：使用原始点尺寸而非像素尺寸，图片会被自动缩放以铺满页面，
+            # 保证页面的物理大小和坐标系统与原始PDF一致
+            img_rect = fitz.Rect(0, 0, orig_width, orig_height)
+            new_page = new_doc.new_page(width=orig_width, height=orig_height)
             new_page.insert_image(img_rect, stream=img_bytes)
-        
+
         new_doc.save(output_path)
         new_doc.close()
         doc.close()

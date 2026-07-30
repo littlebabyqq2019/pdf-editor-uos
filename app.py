@@ -5,8 +5,8 @@ PDF编辑工具集成应用
 """
 
 # 版本信息
-VERSION = "1.1"
-VERSION_DATE = "2026-01-02"
+VERSION = "1.2"
+VERSION_DATE = "2026-07-30"
 
 from flask import Flask, render_template, request, jsonify, send_file, session, send_from_directory
 import os
@@ -38,6 +38,7 @@ sys.path.insert(0, pdf_new_path)
 from pdf_processor import PDFProcessor
 from image_processor import ImageProcessor
 from file_manager import FileManager
+from watermark_processor import WatermarkProcessor
 
 # PyInstaller 下资源路径与可写路径分离
 if getattr(sys, "frozen", False):
@@ -131,6 +132,62 @@ def clean_temp_folders():
 pdf_processor = PDFProcessor(UPLOAD_FOLDER, PROCESSED_FOLDER)
 image_processor = ImageProcessor(UPLOAD_FOLDER, PROCESSED_FOLDER)
 file_manager = FileManager(UPLOAD_FOLDER, PROCESSED_FOLDER)
+watermark_processor = WatermarkProcessor()
+
+# 水印预设与配置持久化存储
+WATERMARK_PRESETS_FILE = os.path.join(APP_DIR, 'watermark_presets.json')
+WATERMARK_CONFIG_FILE = os.path.join(APP_DIR, 'watermark_config.json')
+
+def _load_watermark_config():
+    """加载全局水印配置"""
+    if os.path.exists(WATERMARK_CONFIG_FILE):
+        try:
+            import json
+            with open(WATERMARK_CONFIG_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[WARNING] 加载水印配置失败: {e}")
+    # 默认配置
+    return {
+        'font_size': 40,
+        'color': '#CCCCCC',
+        'opacity': 0.3,
+        'rotation': 45,
+        'density': 3
+    }
+
+def _save_watermark_config(config):
+    """保存全局水印配置"""
+    try:
+        import json
+        with open(WATERMARK_CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"[ERROR] 保存水印配置失败: {e}")
+        return False
+
+def _load_watermark_presets():
+    """加载水印预设列表（只包含name和text）"""
+    if os.path.exists(WATERMARK_PRESETS_FILE):
+        try:
+            import json
+            with open(WATERMARK_PRESETS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[WARNING] 加载水印预设失败: {e}")
+    return []
+
+def _save_watermark_presets(presets):
+    """保存水印预设列表"""
+    try:
+        import json
+        with open(WATERMARK_PRESETS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(presets, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"[ERROR] 保存水印预设失败: {e}")
+        return False
 
 # ========== PDF页面管理工具函数 ==========
 def _session_dir():
@@ -456,13 +513,13 @@ def process_files():
             result = image_processor.images_to_pdf(session_id, files)
         else:
             return jsonify({'error': '未知的操作类型'}), 400
-        
+
         try:
             if isinstance(result, dict) and result.get('success'):
                 file_manager.clear_uploads_only(session_id)
         except Exception as _e:
             pass
-        
+
         return jsonify(result)
     
     except Exception as e:
@@ -562,6 +619,322 @@ def job_status():
     except Exception as e:
         return jsonify({'error': f'查询失败: {e}'}), 500
 
+@app.route('/watermark/config', methods=['GET'])
+def get_watermark_config():
+    """获取全局水印配置"""
+    try:
+        config = _load_watermark_config()
+        return jsonify({'success': True, 'config': config})
+    except Exception as e:
+        return jsonify({'error': f'获取配置失败: {e}'}), 500
+
+@app.route('/watermark/config', methods=['POST'])
+def save_watermark_config():
+    """保存全局水印配置"""
+    try:
+        data = request.get_json() or {}
+        config = {
+            'font_size': int(data.get('font_size', 40)),
+            'color': data.get('color', '#CCCCCC'),
+            'opacity': float(data.get('opacity', 0.3)),
+            'rotation': int(data.get('rotation', 45)),
+            'density': int(data.get('density', 3))
+        }
+
+        if _save_watermark_config(config):
+            return jsonify({'success': True, 'config': config})
+        else:
+            return jsonify({'error': '保存失败'}), 500
+    except Exception as e:
+        return jsonify({'error': f'保存失败: {e}'}), 500
+
+@app.route('/watermark/presets', methods=['GET'])
+def get_watermark_presets():
+    """获取所有水印预设"""
+    try:
+        presets = _load_watermark_presets()
+        return jsonify({'success': True, 'presets': presets})
+    except Exception as e:
+        return jsonify({'error': f'获取失败: {e}'}), 500
+
+@app.route('/watermark/presets', methods=['POST'])
+def add_watermark_preset():
+    """添加水印预设（仅保存name和text）"""
+    try:
+        data = request.get_json() or {}
+        preset = {
+            'id': str(uuid.uuid4()),
+            'name': data.get('name', '未命名水印'),
+            'text': data.get('text', '水印'),
+            'created_at': datetime.now().isoformat()
+        }
+
+        presets = _load_watermark_presets()
+        presets.append(preset)
+
+        if _save_watermark_presets(presets):
+            return jsonify({'success': True, 'preset': preset})
+        else:
+            return jsonify({'error': '保存失败'}), 500
+    except Exception as e:
+        return jsonify({'error': f'添加失败: {e}'}), 500
+
+@app.route('/watermark/presets/<preset_id>', methods=['PUT'])
+def update_watermark_preset(preset_id):
+    """更新水印预设（仅更新name和text）"""
+    try:
+        data = request.get_json() or {}
+        presets = _load_watermark_presets()
+
+        found = False
+        for i, preset in enumerate(presets):
+            if preset.get('id') == preset_id:
+                presets[i].update({
+                    'name': data.get('name', preset['name']),
+                    'text': data.get('text', preset['text']),
+                })
+                found = True
+                break
+
+        if not found:
+            return jsonify({'error': '预设不存在'}), 404
+
+        if _save_watermark_presets(presets):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': '保存失败'}), 500
+    except Exception as e:
+        return jsonify({'error': f'更新失败: {e}'}), 500
+
+@app.route('/watermark/presets/<preset_id>', methods=['DELETE'])
+def delete_watermark_preset(preset_id):
+    """删除水印预设"""
+    try:
+        presets = _load_watermark_presets()
+        presets = [p for p in presets if p.get('id') != preset_id]
+
+        if _save_watermark_presets(presets):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': '删除失败'}), 500
+    except Exception as e:
+        return jsonify({'error': f'删除失败: {e}'}), 500
+
+@app.route('/watermark/apply', methods=['POST'])
+def apply_watermarks():
+    """批量应用水印到PDF文件（使用全局配置和预设）"""
+    try:
+        data = request.get_json() or {}
+        filename = data.get('filename')
+        preset_ids = data.get('preset_ids', [])
+        session_id = session.get('session_id')
+
+        if not session_id:
+            return jsonify({'error': '会话无效'}), 400
+
+        if not filename:
+            return jsonify({'error': '缺少文件名'}), 400
+
+        if not preset_ids:
+            return jsonify({'error': '请至少选择一个水印预设'}), 400
+
+        # 获取输入文件路径
+        session_upload = os.path.join(UPLOAD_FOLDER, session_id)
+        session_processed = os.path.join(PROCESSED_FOLDER, session_id)
+        os.makedirs(session_processed, exist_ok=True)
+
+        input_path = os.path.join(session_upload, filename)
+        if not os.path.exists(input_path):
+            return jsonify({'error': '文件不存在'}), 404
+
+        # 加载全局配置
+        global_config = _load_watermark_config()
+
+        # 获取所选预设
+        all_presets = _load_watermark_presets()
+        selected_presets = [p for p in all_presets if p.get('id') in preset_ids]
+
+        if not selected_presets:
+            return jsonify({'error': '未找到所选预设'}), 404
+
+        # 合并全局配置和预设，创建完整的水印配置
+        full_presets = []
+        for preset in selected_presets:
+            full_preset = {
+                'id': preset['id'],
+                'name': preset['name'],
+                'text': preset['text'],
+                'font_size': global_config['font_size'],
+                'color': global_config['color'],
+                'opacity': global_config['opacity'],
+                'rotation': global_config['rotation'],
+                'density': global_config['density']
+            }
+            full_presets.append(full_preset)
+
+        # 批量添加水印
+        generated_files = watermark_processor.batch_add_watermarks(
+            input_path,
+            session_processed,
+            full_presets
+        )
+
+        if not generated_files:
+            return jsonify({'error': '添加水印失败'}), 500
+
+        # 如果只有一个文件，直接返回
+        if len(generated_files) == 1:
+            return jsonify({
+                'success': True,
+                'download_file': generated_files[0]
+            })
+
+        # 多个文件，打包为 ZIP（使用原文件名）
+        base_name = os.path.splitext(filename)[0]  # 去掉原文件扩展名
+        zip_filename = f'{base_name}.zip'
+        zip_path = os.path.join(session_processed, zip_filename)
+
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for pdf_name in generated_files:
+                pdf_path = os.path.join(session_processed, pdf_name)
+                zipf.write(pdf_path, pdf_name)
+
+        return jsonify({
+            'success': True,
+            'download_file': zip_filename,
+            'files_count': len(generated_files)
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'处理失败: {e}'}), 500
+
+
+@app.route('/watermark/apply_with_action', methods=['POST'])
+def apply_watermarks_with_action():
+    """先执行PDF处理操作，然后批量添加水印"""
+    try:
+        data = request.get_json() or {}
+        filename = data.get('filename')
+        preset_ids = data.get('preset_ids', [])
+        action_type = data.get('action_type')  # remove_header_seal, remove_seal, convert_then_remove
+        session_id = session.get('session_id')
+
+        if not session_id:
+            return jsonify({'error': '会话无效'}), 400
+
+        if not filename or not preset_ids or not action_type:
+            return jsonify({'error': '缺少必要参数'}), 400
+
+        session_upload = os.path.join(UPLOAD_FOLDER, session_id)
+        session_processed = os.path.join(PROCESSED_FOLDER, session_id)
+        os.makedirs(session_processed, exist_ok=True)
+
+        input_path = os.path.join(session_upload, filename)
+        if not os.path.exists(input_path):
+            return jsonify({'error': '文件不存在'}), 404
+
+        # 步骤1: 执行前置操作（去红头/去公章等）
+        # 使用 file_manager 分析文件类型
+        file_info = file_manager.analyze_file(input_path, filename)
+        files = [file_info]
+
+        if action_type == 'remove_header_seal':
+            result = pdf_processor.remove_header_and_seal(session_id, files)
+            action_prefix = '去红头'
+        elif action_type == 'remove_seal':
+            result = pdf_processor.remove_seal_only(session_id, files)
+            action_prefix = '去公章'
+        elif action_type == 'convert_then_remove':
+            result = pdf_processor.convert_then_remove_header_seal(session_id, files)
+            action_prefix = '去红头'
+        else:
+            return jsonify({'error': '未知的操作类型'}), 400
+
+        if not result.get('success'):
+            return jsonify({'error': f'前置操作失败: {result.get("error", "未知错误")}'}), 500
+
+        # 获取处理后的文件
+        processed_filename = result.get('download_file')
+        if not processed_filename:
+            return jsonify({'error': '前置操作未返回文件'}), 500
+
+        processed_path = os.path.join(session_processed, processed_filename)
+        if not os.path.exists(processed_path):
+            return jsonify({'error': '处理后的文件不存在'}), 404
+
+        # 步骤2: 加载水印配置
+        global_config = _load_watermark_config()
+        all_presets = _load_watermark_presets()
+        selected_presets = [p for p in all_presets if p.get('id') in preset_ids]
+
+        if not selected_presets:
+            return jsonify({'error': '未找到所选预设'}), 404
+
+        full_presets = []
+        for preset in selected_presets:
+            full_preset = {
+                'id': preset['id'],
+                'name': preset['name'],
+                'text': preset['text'],
+                'font_size': global_config['font_size'],
+                'color': global_config['color'],
+                'opacity': global_config['opacity'],
+                'rotation': global_config['rotation'],
+                'density': global_config['density']
+            }
+            full_presets.append(full_preset)
+
+        # 步骤3: 批量添加水印，使用自定义命名
+        base_name = os.path.splitext(filename)[0]
+        generated_files = []
+
+        for preset in full_presets:
+            # 生成文件名: 水印名-去红头-原文件名.pdf
+            output_filename = f"{preset['name']}-{action_prefix}-{base_name}.pdf"
+            output_path = os.path.join(session_processed, output_filename)
+
+            # 添加单个水印
+            success = watermark_processor.add_single_watermark(
+                processed_path,
+                output_path,
+                preset
+            )
+
+            if success:
+                generated_files.append(output_filename)
+
+        if not generated_files:
+            return jsonify({'error': '添加水印失败'}), 500
+
+        # 如果只有一个文件，直接返回
+        if len(generated_files) == 1:
+            return jsonify({
+                'success': True,
+                'download_file': generated_files[0]
+            })
+
+        # 多个文件，打包为 ZIP: 去红头-原文件名.zip
+        zip_filename = f'{action_prefix}-{base_name}.zip'
+        zip_path = os.path.join(session_processed, zip_filename)
+
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for pdf_name in generated_files:
+                pdf_path = os.path.join(session_processed, pdf_name)
+                zipf.write(pdf_path, pdf_name)
+
+        return jsonify({
+            'success': True,
+            'download_file': zip_filename,
+            'files_count': len(generated_files)
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'处理失败: {e}'}), 500
+
+
 @app.route('/download/<filename>')
 def download_file(filename):
     """文件下载"""
@@ -569,12 +942,12 @@ def download_file(filename):
         session_id = session.get('session_id')
         processed_dir = os.path.join(PROCESSED_FOLDER, session_id)
         file_path = os.path.join(processed_dir, filename)
-        
+
         if os.path.exists(file_path):
             return send_file(file_path, as_attachment=True, download_name=filename)
         else:
             return jsonify({'error': '文件不存在'}), 404
-    
+
     except Exception as e:
         return jsonify({'error': f'下载失败: {str(e)}'}), 500
 
@@ -623,11 +996,11 @@ if __name__ == '__main__':
         import socket
         hostname = socket.gethostname()
         local_ip = socket.gethostbyname(hostname)
-        
-        print(f"📍 本机访问: http://localhost:{args.port}")
-        print(f"🌐 局域网访问: http://{local_ip}:{args.port}")
-        print(f"📄 PDF处理工具: http://{local_ip}:{args.port}")
-        print(f"✏️  PDF编辑器: http://{local_ip}:{args.port}/editor")
+
+        print(f"本机访问: http://localhost:{args.port}")
+        print(f"局域网访问: http://{local_ip}:{args.port}")
+        print(f"PDF处理工具: http://{local_ip}:{args.port}")
+        print(f"PDF编辑器: http://{local_ip}:{args.port}/editor")
         print(f"按 Ctrl+C 可停止服务")
         print("=" * 60)
         

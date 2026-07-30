@@ -341,13 +341,22 @@
             box-shadow: 0 15px 40px rgba(0, 184, 148, 0.35);
         }
         
-        .function-btn.images-to-pdf { 
+        .function-btn.images-to-pdf {
             background: linear-gradient(135deg, #636e72, #2d3436);
             box-shadow: 0 8px 25px rgba(99, 110, 114, 0.25);
         }
-        
+
         .function-btn.images-to-pdf:hover {
             box-shadow: 0 15px 40px rgba(99, 110, 114, 0.35);
+        }
+
+        .function-btn.word-to-pdf {
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            box-shadow: 0 8px 25px rgba(162, 155, 254, 0.25);
+        }
+
+        .function-btn.word-to-pdf:hover {
+            box-shadow: 0 15px 40px rgba(162, 155, 254, 0.35);
         }
 
         .file-list {
@@ -703,16 +712,151 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(108, 92, 231, 0.35) !important;
         }
+        /* 通用按钮样式 */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(255, 107, 107, 0.4);
+        }
+
+        /* 模态对话框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.4em;
+            font-weight: 500;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
     </style>
     <link rel="stylesheet" href="/static/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <a href="/editor" class="nav-button">
+            <a href="/editor" class="nav-button" style="right: 160px;">
                 <i class="fas fa-edit"></i>
                 <span>手动编辑</span>
             </a>
+            <button class="nav-button" onclick="openWatermarkSettings()" style="right: 20px;">
+                <i class="fas fa-cog"></i>
+                <span>水印设置</span>
+            </button>
             <h1><i class="fas fa-file-pdf"></i> PDF文件编辑软件</h1>
             <p>支持PDF去红头、去公章、转换等多种功能</p>
         </div>
@@ -727,7 +871,7 @@
                         拖拽文件到此处上传
                     </div>
                     <div class="upload-text-sub">
-                        支持PDF和图片文件（JPG、PNG、BMP、TIFF）
+                        支持PDF、图片文件（JPG、PNG、BMP、TIFF）、Word文件（DOC、DOCX）
                     </div>
                     <div class="upload-divider">
                         <span>或</span>
@@ -738,7 +882,7 @@
                     </label>
                 </div>
             </div>
-            <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff" style="display: none;">
+            <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.doc,.docx" style="display: none;">
         </div>
 
         <div class="function-buttons">
@@ -752,19 +896,30 @@
             </div>
             <div class="buttons-grid">
                 <button class="function-btn remove-header-seal" onclick="processFiles('remove_header_seal')">
-                    <i class="fas fa-eraser"></i> 去红头及公章
+                    <i class="fas fa-eraser"></i> PDF去红头及公章
                 </button>
                 <button class="function-btn remove-seal" onclick="processFiles('remove_seal')">
-                    <i class="fas fa-stamp"></i> 去公章
+                    <i class="fas fa-stamp"></i> PDF去公章
                 </button>
                 <button class="function-btn convert-remove" onclick="processFiles('convert_then_remove')">
-                    <i class="fas fa-image"></i> 转图片后去红头及公章
+                    <i class="fas fa-image"></i> PDF转图片后去红头及公章
                 </button>
+
+                <button class="function-btn" onclick="openWatermarkDialogWithAction('remove_header_seal')" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7) !important;">
+                    <i class="fas fa-eraser"></i><i class="fas fa-certificate" style="font-size:0.7em;margin-left:2px;"></i> PDF去红头及公章+水印
+                </button>
+                <button class="function-btn" onclick="openWatermarkDialogWithAction('remove_seal')" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7) !important;">
+                    <i class="fas fa-stamp"></i><i class="fas fa-certificate" style="font-size:0.7em;margin-left:2px;"></i> PDF去公章+水印
+                </button>
+                <button class="function-btn" onclick="openWatermarkDialogWithAction('convert_then_remove')" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7) !important;">
+                    <i class="fas fa-image"></i><i class="fas fa-certificate" style="font-size:0.7em;margin-left:2px;"></i> PDF转图片后去红头及公章+水印
+                </button>
+
                 <button class="function-btn remove-bg" onclick="processFiles('remove_background')">
-                    <i class="fas fa-magic"></i> 去背景
+                    <i class="fas fa-magic"></i> PDF去背景杂色
                 </button>
                 <button class="function-btn to-word" onclick="processFiles('convert_to_word')">
-                    <i class="fas fa-file-word"></i> 转Word
+                    <i class="fas fa-file-word"></i> 文本型PDF转Word
                 </button>
                 <button class="function-btn images-to-pdf" onclick="processFiles('images_to_pdf')">
                     <i class="fas fa-file-pdf"></i> 图片转PDF
@@ -778,6 +933,10 @@
                 </button>
                 <button class="function-btn" onclick="splitPdf()">
                     <i class="fas fa-cut"></i> 拆分PDF文件
+                </button>
+
+                <button class="function-btn word-to-pdf" onclick="openWatermarkDialog()">
+                    <i class="fas fa-certificate"></i> 添加水印
                 </button>
             </div>
         </div>
@@ -817,10 +976,7 @@
                 <span style="color: #74b9ff;">{{ version_date }}</span>
                 <span style="margin: 0 10px; color: #e1e8ed;">|</span>
                 <i class="fas fa-check-circle" style="color: #00b894;"></i> 
-                <strong style="color: #00b894;">WPS公章修复版</strong>
-            </p>
-            <p style="margin: 8px 0; font-size: 0.85em; color: #95a5a6;">
-                本版本已修复WPS中公章显示问题 ✓
+                <strong style="color: #00b894;">添加水印版</strong>
             </p>
         </div>
     </div>
@@ -1247,7 +1403,7 @@
 
         function downloadFile(filename) {
             const link = document.createElement('a');
-            link.href = `/download/${filename}`;
+            link.href = `/download/${encodeURIComponent(filename)}`;
             link.download = filename;
             document.body.appendChild(link);
             link.click();
@@ -1677,6 +1833,637 @@
     // 捕获阶段也阻止，防止浏览器默认打开文件
     document.addEventListener('dragover', function(e){ e.preventDefault(); }, true);
     document.addEventListener('drop', function(e){ e.preventDefault(); }, true);
-    </script>
+
+    // ========== 水印功能 ==========
+    let watermarkPresets = [];
+    let globalWatermarkConfig = {
+        font_size: 40,
+        color: '#CCCCCC',
+        opacity: 0.3,
+        rotation: 45,
+        density: 3
+    };
+
+    // 加载全局水印配置
+    async function loadGlobalWatermarkConfig() {
+        try {
+            const resp = await fetch('/watermark/config');
+            const data = await resp.json();
+            if (data.success) {
+                globalWatermarkConfig = data.config || globalWatermarkConfig;
+            }
+        } catch (err) {
+            console.error('加载全局水印配置失败:', err);
+        }
+    }
+
+    // 保存全局水印配置
+    async function saveGlobalWatermarkConfig(config) {
+        try {
+            const resp = await fetch('/watermark/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(config)
+            });
+            const result = await resp.json();
+            if (result.success) {
+                globalWatermarkConfig = config;
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.error('保存全局水印配置失败:', err);
+            return false;
+        }
+    }
+
+    // 加载水印预设
+    async function loadWatermarkPresets() {
+        try {
+            const resp = await fetch('/watermark/presets');
+            const data = await resp.json();
+            if (data.success) {
+                watermarkPresets = data.presets || [];
+            }
+        } catch (err) {
+            console.error('加载水印预设失败:', err);
+        }
+    }
+
+    // 打开水印设置页面（模态对话框）
+    function openWatermarkSettings() {
+        Promise.all([loadWatermarkPresets(), loadGlobalWatermarkConfig()]).then(() => {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'watermarkSettingsModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-certificate"></i> 水印设置</h2>
+                        <button class="modal-close" onclick="document.getElementById('watermarkSettingsModal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- 全局参数设置 -->
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; margin-bottom: 25px; color: white;">
+                            <h3 style="margin: 0 0 15px 0; font-size: 1.1em;">
+                                <i class="fas fa-cog"></i> 全局水印参数
+                            </h3>
+                            <p style="margin: 0 0 15px 0; font-size: 0.9em; opacity: 0.9;">
+                                这些参数将应用于所有水印预设
+                            </p>
+                            <form id="globalWatermarkConfigForm" onsubmit="saveGlobalConfig(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">字号</label>
+                                    <input type="number" name="font_size" value="${globalWatermarkConfig.font_size}" min="10" max="200" required
+                                           style="width: 100%; padding: 8px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.15); color: white; font-weight: 500;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">颜色</label>
+                                    <input type="color" name="color" value="${globalWatermarkConfig.color}" required
+                                           style="width: 100%; padding: 4px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.15); height: 42px; cursor: pointer;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">透明度（0-1）</label>
+                                    <input type="number" name="opacity" value="${globalWatermarkConfig.opacity}" step="0.05" min="0" max="1" required
+                                           style="width: 100%; padding: 8px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.15); color: white; font-weight: 500;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">角度（0-360）</label>
+                                    <input type="number" name="rotation" value="${globalWatermarkConfig.rotation}" min="0" max="360" required
+                                           style="width: 100%; padding: 8px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.15); color: white; font-weight: 500;">
+                                </div>
+                                <div>
+                                    <label style="display: block; margin-bottom: 5px; font-weight: 500;">密度（1-10）</label>
+                                    <input type="number" name="density" value="${globalWatermarkConfig.density}" min="1" max="10" required
+                                           style="width: 100%; padding: 8px; border: 2px solid rgba(255,255,255,0.3); border-radius: 6px; background: rgba(255,255,255,0.15); color: white; font-weight: 500;">
+                                </div>
+                                <div style="display: flex; align-items: flex-end;">
+                                    <button type="submit" class="btn" style="width: 100%; background: white; color: #667eea; font-weight: 600; padding: 10px; border-radius: 6px; border: none; cursor: pointer; transition: all 0.3s;">
+                                        <i class="fas fa-save"></i> 保存配置
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- 水印预设列表 -->
+                        <div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h3 style="margin: 0; color: #2c3e50;">
+                                    <i class="fas fa-list"></i> 水印预设列表
+                                </h3>
+                                <button class="btn btn-primary" onclick="openAddWatermarkPreset()">
+                                    <i class="fas fa-plus"></i> 添加新预设
+                                </button>
+                            </div>
+                            <div id="watermarkPresetsContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            renderWatermarkPresets();
+        });
+    }
+
+    // 保存全局配置
+    async function saveGlobalConfig(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const config = {
+            font_size: parseInt(formData.get('font_size')),
+            color: formData.get('color'),
+            opacity: parseFloat(formData.get('opacity')),
+            rotation: parseInt(formData.get('rotation')),
+            density: parseInt(formData.get('density'))
+        };
+
+        try {
+            showLoading();
+            const success = await saveGlobalWatermarkConfig(config);
+            if (success) {
+                showAlert('全局配置保存成功', 'success');
+            } else {
+                showAlert('保存失败', 'error');
+            }
+        } catch (err) {
+            showAlert('保存失败: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 渲染水印预设列表
+    function renderWatermarkPresets() {
+        const container = document.getElementById('watermarkPresetsContainer');
+        if (!container) return;
+
+        if (watermarkPresets.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#999; padding: 30px; background: #f9fafb; border-radius: 8px;">暂无预设，点击上方按钮添加</p>';
+            return;
+        }
+
+        container.innerHTML = watermarkPresets.map(preset => `
+            <div class="preset-card" style="border: 1px solid #e1e8ed; border-radius: 8px; padding: 15px; margin-bottom: 12px; background: #ffffff; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 1.05em;">
+                            <i class="fas fa-bookmark" style="color: #667eea;"></i> ${preset.name}
+                        </h4>
+                        <div style="font-size: 0.9em; color: #666; background: #f8f9fa; padding: 8px 12px; border-radius: 6px; display: inline-block;">
+                            <i class="fas fa-quote-left" style="color: #95a5a6; font-size: 0.8em;"></i>
+                            <strong style="color: #2c3e50; margin: 0 5px;">${preset.text}</strong>
+                            <i class="fas fa-quote-right" style="color: #95a5a6; font-size: 0.8em;"></i>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" onclick="editWatermarkPreset('${preset.id}')" style="padding: 8px 14px;">
+                            <i class="fas fa-edit"></i> 编辑
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteWatermarkPreset('${preset.id}')" style="padding: 8px 14px;">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // 打开添加水印预设对话框
+    function openAddWatermarkPreset() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'addWatermarkPresetModal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-plus-circle"></i> 添加水印预设</h2>
+                    <button class="modal-close" onclick="document.getElementById('addWatermarkPresetModal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div style="background: #f0f4ff; border-left: 4px solid #667eea; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 0.9em; color: #555;">
+                            <i class="fas fa-info-circle" style="color: #667eea;"></i>
+                            水印的样式参数（字号、颜色、透明度等）由全局配置统一设置，这里只需填写预设名称和水印文字内容。
+                        </p>
+                    </div>
+                    <form id="watermarkPresetForm" onsubmit="saveWatermarkPreset(event)">
+                        <div style="display: grid; gap: 18px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
+                                    <i class="fas fa-tag"></i> 预设名称
+                                </label>
+                                <input type="text" name="name" required placeholder="例如：医政科、公卫科、院办公室"
+                                       style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 1em; transition: all 0.3s;"
+                                       onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e1e8ed'">
+                                <small style="color: #95a5a6; font-size: 0.85em; display: block; margin-top: 5px;">用于识别和选择此预设</small>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
+                                    <i class="fas fa-font"></i> 水印文字
+                                </label>
+                                <input type="text" name="text" required placeholder="例如：医政科、CONFIDENTIAL"
+                                       style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 1em; transition: all 0.3s;"
+                                       onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e1e8ed'">
+                                <small style="color: #95a5a6; font-size: 0.85em; display: block; margin-top: 5px;">将显示在PDF上的实际内容</small>
+                            </div>
+                        </div>
+                        <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('addWatermarkPresetModal').remove()">
+                                <i class="fas fa-times"></i> 取消
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存预设
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // 保存水印预设
+    async function saveWatermarkPreset(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const data = {
+            name: formData.get('name'),
+            text: formData.get('text')
+        };
+
+        try {
+            showLoading();
+            const resp = await fetch('/watermark/presets', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await resp.json();
+
+            if (result.success) {
+                showAlert('保存成功', 'success');
+                document.getElementById('addWatermarkPresetModal').remove();
+                await loadWatermarkPresets();
+                renderWatermarkPresets();
+            } else {
+                showAlert(result.error || '保存失败', 'error');
+            }
+        } catch (err) {
+            showAlert('保存失败: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 删除水印预设
+    async function deleteWatermarkPreset(presetId) {
+        if (!confirm('确定要删除这个水印预设吗？')) return;
+
+        try {
+            showLoading();
+            const resp = await fetch(`/watermark/presets/${presetId}`, {method: 'DELETE'});
+            const result = await resp.json();
+
+            if (result.success) {
+                showAlert('删除成功', 'success');
+                await loadWatermarkPresets();
+                renderWatermarkPresets();
+            } else {
+                showAlert(result.error || '删除失败', 'error');
+            }
+        } catch (err) {
+            showAlert('删除失败: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 编辑水印预设
+    function editWatermarkPreset(presetId) {
+        const preset = watermarkPresets.find(p => p.id === presetId);
+        if (!preset) {
+            showAlert('预设不存在', 'error');
+            return;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'editWatermarkPresetModal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit"></i> 编辑水印预设</h2>
+                    <button class="modal-close" onclick="document.getElementById('editWatermarkPresetModal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div style="background: #f0f4ff; border-left: 4px solid #667eea; padding: 12px; margin-bottom: 20px; border-radius: 4px;">
+                        <p style="margin: 0; font-size: 0.9em; color: #555;">
+                            <i class="fas fa-info-circle" style="color: #667eea;"></i>
+                            水印的样式参数（字号、颜色、透明度等）由全局配置统一设置，这里只能修改预设名称和水印文字内容。
+                        </p>
+                    </div>
+                    <form id="editWatermarkPresetForm" onsubmit="updateWatermarkPreset(event, '${presetId}')">
+                        <div style="display: grid; gap: 18px;">
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
+                                    <i class="fas fa-tag"></i> 预设名称
+                                </label>
+                                <input type="text" name="name" required placeholder="例如：医政科、公卫科、院办公室" value="${preset.name}"
+                                       style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 1em; transition: all 0.3s;"
+                                       onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e1e8ed'">
+                                <small style="color: #95a5a6; font-size: 0.85em; display: block; margin-top: 5px;">用于识别和选择此预设</small>
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
+                                    <i class="fas fa-font"></i> 水印文字
+                                </label>
+                                <input type="text" name="text" required placeholder="例如：医政科、CONFIDENTIAL" value="${preset.text}"
+                                       style="width: 100%; padding: 12px; border: 2px solid #e1e8ed; border-radius: 8px; font-size: 1em; transition: all 0.3s;"
+                                       onfocus="this.style.borderColor='#667eea'" onblur="this.style.borderColor='#e1e8ed'">
+                                <small style="color: #95a5a6; font-size: 0.85em; display: block; margin-top: 5px;">将显示在PDF上的实际内容</small>
+                            </div>
+                        </div>
+                        <div style="margin-top: 25px; display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('editWatermarkPresetModal').remove()">
+                                <i class="fas fa-times"></i> 取消
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存修改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    // 更新水印预设
+    async function updateWatermarkPreset(event, presetId) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const data = {
+            name: formData.get('name'),
+            text: formData.get('text')
+        };
+
+        try {
+            showLoading();
+            const resp = await fetch(`/watermark/presets/${presetId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            const result = await resp.json();
+
+            if (result.success) {
+                showAlert('更新成功', 'success');
+                document.getElementById('editWatermarkPresetModal').remove();
+                await loadWatermarkPresets();
+                renderWatermarkPresets();
+            } else {
+                showAlert(result.error || '更新失败', 'error');
+            }
+        } catch (err) {
+            showAlert('更新失败: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 打开水印选择对话框（点击"添加水印"按钮时）
+    function openWatermarkDialog() {
+        // 检查是否有PDF文件（使用全局fileList）
+        const pdfFiles = fileList.filter(f => f.type && f.type.includes('PDF'));
+        if (pdfFiles.length === 0) {
+            showAlert('请先上传PDF文件', 'error');
+            return;
+        }
+
+        if (pdfFiles.length > 1) {
+            showAlert('请只上传一个PDF文件', 'error');
+            return;
+        }
+
+        loadWatermarkPresets().then(() => {
+            if (watermarkPresets.length === 0) {
+                showAlert('请先在"水印设置"中添加预设', 'error');
+                return;
+            }
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'watermarkSelectModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-certificate"></i> 选择水印</h2>
+                        <button class="modal-close" onclick="document.getElementById('watermarkSelectModal').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 15px; color: #666;">请勾选需要添加的水印（可多选），每个水印将生成一份独立的PDF文件</p>
+                        <form id="watermarkSelectForm" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+                            ${watermarkPresets.map(preset => `
+                                <div style="padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; background: #fafbfc; transition: all 0.2s; hover: box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    <label style="display: flex; flex-direction: column; align-items: center; cursor: pointer; text-align: center;">
+                                        <input type="checkbox" name="preset" value="${preset.id}" style="margin-bottom: 8px; width: 18px; height: 18px;">
+                                        <strong style="font-size: 0.95em; color: #2c3e50; word-break: break-word;">${preset.name}</strong>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </form>
+                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="document.getElementById('watermarkSelectModal').remove()">取消</button>
+                            <button type="button" class="btn btn-primary" onclick="applyWatermarks()">
+                                <i class="fas fa-check"></i> 确定
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        });
+    }
+
+    // 应用水印
+    async function applyWatermarks() {
+        const form = document.getElementById('watermarkSelectForm');
+        const checkedBoxes = form.querySelectorAll('input[name="preset"]:checked');
+        const presetIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (presetIds.length === 0) {
+            showAlert('请至少选择一个水印', 'error');
+            return;
+        }
+
+        // 获取PDF文件名（使用全局fileList）
+        const pdfFiles = fileList.filter(f => f.type && f.type.includes('PDF'));
+        const filename = pdfFiles[0].filename;
+
+        try {
+            showLoading();
+            document.getElementById('watermarkSelectModal').remove();
+
+            const resp = await fetch('/watermark/apply', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filename, preset_ids: presetIds})
+            });
+
+            const result = await resp.json();
+
+            if (result.success) {
+                const count = result.files_count || 1;
+                showAlert(`添加水印成功，已生成 ${count} 个文件`, 'success');
+                downloadFile(result.download_file);
+            } else {
+                showAlert(result.error || '添加水印失败', 'error');
+            }
+        } catch (err) {
+            showAlert('添加水印失败: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // 打开水印对话框并记住前置操作（用于组合处理）
+    let pendingPreAction = null;
+
+    function openWatermarkDialogWithAction(actionType) {
+        // 检查是否有PDF文件
+        const pdfFiles = fileList.filter(f => f.type && f.type.includes('PDF'));
+        if (pdfFiles.length === 0) {
+            showAlert('请先上传PDF文件', 'error');
+            return;
+        }
+
+        if (pdfFiles.length > 1) {
+            showAlert('请只上传一个PDF文件', 'error');
+            return;
+        }
+
+        // 保存前置操作类型
+        pendingPreAction = actionType;
+
+        loadWatermarkPresets().then(() => {
+            if (watermarkPresets.length === 0) {
+                showAlert('请先在"水印设置"中添加预设', 'error');
+                pendingPreAction = null;
+                return;
+            }
+
+            const actionNames = {
+                'remove_header_seal': '去红头及公章',
+                'remove_seal': '去公章',
+                'convert_then_remove': '转图片后去红头及公章'
+            };
+            const actionName = actionNames[actionType] || '处理';
+
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'watermarkSelectModal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-certificate"></i> ${actionName}+水印</h2>
+                        <button class="modal-close" onclick="closeWatermarkWithActionDialog()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin-bottom: 15px; color: #666;">系统将先执行"${actionName}"，然后添加水印</p>
+                        <p style="margin-bottom: 15px; color: #666;">请勾选需要添加的水印（可多选），每个水印将生成一份独立的PDF文件</p>
+                        <form id="watermarkSelectForm" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+                            ${watermarkPresets.map(preset => `
+                                <div style="padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; background: #fafbfc; transition: all 0.2s; hover: box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    <label style="display: flex; flex-direction: column; align-items: center; cursor: pointer; text-align: center;">
+                                        <input type="checkbox" name="preset" value="${preset.id}" style="margin-bottom: 8px; width: 18px; height: 18px;">
+                                        <strong style="font-size: 0.95em; color: #2c3e50; word-break: break-word;">${preset.name}</strong>
+                                    </label>
+                                </div>
+                            `).join('')}
+                        </form>
+                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="closeWatermarkWithActionDialog()">取消</button>
+                            <button type="button" class="btn btn-primary" onclick="applyActionWithWatermarks()">
+                                <i class="fas fa-check"></i> 确定
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        });
+    }
+
+    function closeWatermarkWithActionDialog() {
+        pendingPreAction = null;
+        const modal = document.getElementById('watermarkSelectModal');
+        if (modal) modal.remove();
+    }
+
+    // 执行组合操作：先处理PDF，再添加水印
+    async function applyActionWithWatermarks() {
+        const form = document.getElementById('watermarkSelectForm');
+        const checkedBoxes = form.querySelectorAll('input[name="preset"]:checked');
+        const presetIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (presetIds.length === 0) {
+            showAlert('请至少选择一个水印', 'error');
+            return;
+        }
+
+        if (!pendingPreAction) {
+            showAlert('系统错误：未指定前置操作', 'error');
+            return;
+        }
+
+        // 获取PDF文件名
+        const pdfFiles = fileList.filter(f => f.type && f.type.includes('PDF'));
+        const filename = pdfFiles[0].filename;
+
+        try {
+            showLoading();
+            document.getElementById('watermarkSelectModal').remove();
+
+            const resp = await fetch('/watermark/apply_with_action', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    filename,
+                    preset_ids: presetIds,
+                    action_type: pendingPreAction
+                })
+            });
+
+            const result = await resp.json();
+
+            if (result.success) {
+                const count = result.files_count || 1;
+                showAlert(`处理成功，已生成 ${count} 个文件`, 'success');
+                downloadFile(result.download_file);
+            } else {
+                showAlert(result.error || '处理失败', 'error');
+            }
+        } catch (err) {
+            showAlert('处理失败: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+            pendingPreAction = null;
+        }
+    }
+
+</script>
 </body>
 </html>
