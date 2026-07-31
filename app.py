@@ -5,7 +5,7 @@ PDF编辑工具集成应用
 """
 
 # 版本信息
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 VERSION_DATE = "2026-07-31"
 
 from flask import Flask, render_template, request, jsonify, send_file, session, send_from_directory
@@ -722,7 +722,7 @@ def delete_watermark_preset(preset_id):
 
 @app.route('/watermark/apply', methods=['POST'])
 def apply_watermarks():
-    """批量应用水印到PDF文件（支持多文件）"""
+    """批量应用水印到PDF或图片文件（支持多文件）"""
     try:
         data = request.get_json() or {}
         filenames = data.get('filenames', [])  # 改为接收文件名列表
@@ -770,6 +770,9 @@ def apply_watermarks():
         # 存储所有生成的文件夹路径（用于打包）
         all_output_folders = []
 
+        # 定义图片扩展名
+        image_extensions = ('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.tif')
+
         # 循环处理每个文件
         for filename in filenames:
             input_path = os.path.join(session_upload, filename)
@@ -777,57 +780,239 @@ def apply_watermarks():
                 print(f"[WARNING] 文件不存在，跳过: {filename}")
                 continue
 
+            # 判断文件类型
+            file_ext = os.path.splitext(filename)[1].lower()
+            is_image = file_ext in image_extensions
+            is_pdf = file_ext == '.pdf'
+
+            print(f"[INFO] 处理文件: {filename}, 类型: {'图片' if is_image else 'PDF' if is_pdf else '未知'}")
+
+            if not is_image and not is_pdf:
+                print(f"[WARNING] 不支持的文件类型，跳过: {filename}")
+                continue
+
             # 为当前文件创建独立文件夹: 加水印-原文件名
             base_name = os.path.splitext(filename)[0]
             file_output_folder = os.path.join(session_processed, f'加水印-{base_name}')
             os.makedirs(file_output_folder, exist_ok=True)
+            print(f"[INFO] 创建输出文件夹: {file_output_folder}")
 
             # 循环添加每个水印预设
             file_watermarked_count = 0
             for preset in full_presets:
-                # 生成文件名: 水印名-原文件名.pdf
-                output_filename = f"{preset['name']}-{base_name}.pdf"
-                output_path = os.path.join(file_output_folder, output_filename)
-
-                # 添加单个水印
-                success = watermark_processor.add_single_watermark(
-                    input_path,
-                    output_path,
-                    preset
-                )
+                if is_pdf:
+                    # PDF：输出为PDF格式
+                    output_filename = f"{preset['name']}-{base_name}.pdf"
+                    output_path = os.path.join(file_output_folder, output_filename)
+                    print(f"[INFO] 添加PDF水印: {output_filename}")
+                    success = watermark_processor.add_single_watermark(
+                        input_path,
+                        output_path,
+                        preset
+                    )
+                else:  # is_image
+                    # 图片：保持原格式输出
+                    output_filename = f"{preset['name']}-{base_name}{file_ext}"
+                    output_path = os.path.join(file_output_folder, output_filename)
+                    print(f"[INFO] 添加图片水印: {output_filename}, 输出路径: {output_path}")
+                    success = watermark_processor.add_watermark_to_image(
+                        input_path,
+                        output_path,
+                        preset
+                    )
 
                 if success:
                     file_watermarked_count += 1
+                    print(f"[INFO] 水印添加成功，文件已生成: {output_path}")
+                else:
+                    print(f"[ERROR] 水印添加失败: {output_filename}")
 
             if file_watermarked_count > 0:
                 all_output_folders.append(file_output_folder)
+                print(f"[INFO] 文件处理完成，成功添加 {file_watermarked_count} 个水印")
 
         if not all_output_folders:
+            print(f"[ERROR] 所有文件处理失败，没有生成任何输出")
             return jsonify({'error': '所有文件处理失败'}), 500
 
-        # 打包所有文件夹为 "已处理.zip"
-        zip_filename = '已处理.zip'
-        zip_path = os.path.join(session_processed, zip_filename)
+        # 统计总共生成的文件数量
+        total_files = 0
+        all_generated_files = []  # 存储所有生成的文件路径
+        for folder_path in all_output_folders:
+            for root, dirs, files in os.walk(folder_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    all_generated_files.append((file_path, file))  # (完整路径, 文件名)
+                    total_files += 1
 
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        # 判断是否需要打包：只有1个文件时直接返回，多个文件时打包
+        if total_files == 1:
+            # 单个文件，移到processed根目录并直接返回
+            src_file_path, original_filename = all_generated_files[0]
+            dest_file_path = os.path.join(session_processed, original_filename)
+
+            # 如果目标文件已存在，先删除
+            if os.path.exists(dest_file_path):
+                os.remove(dest_file_path)
+
+            # 移动文件到根目录
+            shutil.move(src_file_path, dest_file_path)
+            print(f"[INFO] 仅1个文件，移动到根目录: {original_filename}")
+
+            # 删除空文件夹
             for folder_path in all_output_folders:
-                folder_name = os.path.basename(folder_path)
-                for root, dirs, files in os.walk(folder_path):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        # 在 ZIP 中保留文件夹结构: 加水印-xxx/水印名-xxx.pdf
-                        arcname = os.path.join(folder_name, file)
-                        zipf.write(file_path, arcname)
+                if os.path.exists(folder_path):
+                    shutil.rmtree(folder_path)
 
-        return jsonify({
-            'success': True,
-            'download_file': zip_filename,
-            'files_count': len(all_output_folders)
-        })
+            return jsonify({
+                'success': True,
+                'download_file': original_filename,
+                'files_count': 1,
+                'direct_file': True  # 标记为直接文件
+            })
+        else:
+            # 多个文件，打包成ZIP
+            print(f"[INFO] 共{total_files}个文件，开始打包为ZIP")
+            zip_filename = '已处理.zip'
+            zip_path = os.path.join(session_processed, zip_filename)
+
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for folder_path in all_output_folders:
+                    folder_name = os.path.basename(folder_path)
+                    for root, dirs, files in os.walk(folder_path):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            # 在 ZIP 中保留文件夹结构: 加水印-xxx/水印名-xxx.pdf
+                            arcname = os.path.join(folder_name, file)
+                            zipf.write(file_path, arcname)
+                            print(f"[INFO] 添加到ZIP: {arcname}")
+
+            print(f"[INFO] ZIP文件创建成功: {zip_path}, 大小: {os.path.getsize(zip_path)} bytes")
+
+            return jsonify({
+                'success': True,
+                'download_file': zip_filename,
+                'files_count': len(all_output_folders)
+            })
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'处理失败: {e}'}), 500
+
+
+@app.route('/pdf_to_images', methods=['POST'])
+def pdf_to_images():
+    """PDF转图片（支持多文件）"""
+    try:
+        import fitz  # PyMuPDF
+
+        data = request.get_json() or {}
+        filenames = data.get('filenames', [])
+
+        if not filenames:
+            return jsonify({'error': '未提供文件'}), 400
+
+        session_id = session.get('session_id')
+        session_upload = os.path.join(UPLOAD_FOLDER, session_id)
+        session_processed = os.path.join(PROCESSED_FOLDER, session_id)
+        os.makedirs(session_processed, exist_ok=True)
+
+        print(f"[INFO] 开始转换 {len(filenames)} 个PDF文件为图片")
+
+        # 存储所有生成的文件/文件夹
+        all_outputs = []  # 元素格式: (type, path, name) - type: 'file' 或 'folder'
+
+        for filename in filenames:
+            input_path = os.path.join(session_upload, filename)
+            if not os.path.exists(input_path):
+                print(f"[WARNING] 文件不存在，跳过: {filename}")
+                continue
+
+            base_name = os.path.splitext(filename)[0]
+            print(f"[INFO] 处理PDF: {filename}")
+
+            try:
+                # 打开PDF
+                pdf_doc = fitz.open(input_path)
+                page_count = len(pdf_doc)
+                print(f"[INFO] PDF共有 {page_count} 页")
+
+                # 如果只有1页，直接保存到根目录
+                if page_count == 1:
+                    page = pdf_doc[0]
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2倍分辨率
+                    output_filename = f"{base_name}.jpg"
+                    output_path = os.path.join(session_processed, output_filename)
+                    pix.save(output_path)
+                    print(f"[INFO] 单页PDF转换完成: {output_filename}")
+                    all_outputs.append(('file', output_path, output_filename))
+                else:
+                    # 多页，创建文件夹
+                    folder_name = base_name
+                    folder_path = os.path.join(session_processed, folder_name)
+                    os.makedirs(folder_path, exist_ok=True)
+
+                    for page_num in range(page_count):
+                        page = pdf_doc[page_num]
+                        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2倍分辨率
+                        output_filename = f"{base_name}-页面{page_num + 1}.jpg"
+                        output_path = os.path.join(folder_path, output_filename)
+                        pix.save(output_path)
+                        print(f"[INFO] 转换完成: {output_filename}")
+
+                    all_outputs.append(('folder', folder_path, folder_name))
+
+                pdf_doc.close()
+
+            except Exception as e:
+                print(f"[ERROR] 转换PDF失败 {filename}: {e}")
+                continue
+
+        if not all_outputs:
+            print(f"[ERROR] 所有文件转换失败")
+            return jsonify({'error': '所有文件转换失败'}), 500
+
+        # 判断是否需要打包
+        if len(all_outputs) == 1 and all_outputs[0][0] == 'file':
+            # 单个文件，直接返回
+            _, file_path, filename = all_outputs[0]
+            print(f"[INFO] 单个文件，直接返回: {filename}")
+            return jsonify({
+                'success': True,
+                'download_file': filename
+            })
+        else:
+            # 多个文件或有文件夹，打包成ZIP
+            print(f"[INFO] 多个输出，打包为ZIP")
+            zip_filename = 'PDF转图片.zip'
+            zip_path = os.path.join(session_processed, zip_filename)
+
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for output_type, output_path, output_name in all_outputs:
+                    if output_type == 'file':
+                        # 单个文件直接添加到ZIP根目录
+                        zipf.write(output_path, output_name)
+                        print(f"[INFO] 添加到ZIP: {output_name}")
+                    else:
+                        # 文件夹，遍历添加
+                        for root, dirs, files in os.walk(output_path):
+                            for file in files:
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.join(output_name, file)
+                                zipf.write(file_path, arcname)
+                                print(f"[INFO] 添加到ZIP: {arcname}")
+
+            print(f"[INFO] ZIP文件创建成功: {zip_path}, 大小: {os.path.getsize(zip_path)} bytes")
+
+            return jsonify({
+                'success': True,
+                'download_file': zip_filename
+            })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'转换失败: {e}'}), 500
 
 
 @app.route('/watermark/apply_with_action', methods=['POST'])
@@ -972,7 +1157,7 @@ def apply_watermarks_with_action():
         return jsonify({'error': f'处理失败: {e}'}), 500
 
 
-@app.route('/download/<filename>')
+@app.route('/download/<path:filename>')
 def download_file(filename):
     """文件下载"""
     try:
@@ -980,12 +1165,26 @@ def download_file(filename):
         processed_dir = os.path.join(PROCESSED_FOLDER, session_id)
         file_path = os.path.join(processed_dir, filename)
 
+        print(f"[INFO] 下载请求 - 文件名: {filename}")
+        print(f"[INFO] Session ID: {session_id}")
+        print(f"[INFO] 文件路径: {file_path}")
+        print(f"[INFO] 文件是否存在: {os.path.exists(file_path)}")
+
         if os.path.exists(file_path):
+            print(f"[INFO] 开始发送文件: {filename}")
             return send_file(file_path, as_attachment=True, download_name=filename)
         else:
+            print(f"[ERROR] 文件不存在: {file_path}")
+            # 列出目录中的所有文件
+            if os.path.exists(processed_dir):
+                files_in_dir = os.listdir(processed_dir)
+                print(f"[INFO] 目录中的文件: {files_in_dir}")
             return jsonify({'error': '文件不存在'}), 404
 
     except Exception as e:
+        print(f"[ERROR] 下载失败: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'下载失败: {str(e)}'}), 500
 
 def _restart_app():
