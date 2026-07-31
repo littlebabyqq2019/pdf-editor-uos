@@ -5,8 +5,8 @@ PDF编辑工具集成应用
 """
 
 # 版本信息
-VERSION = "1.2"
-VERSION_DATE = "2026-07-30"
+VERSION = "1.2.1"
+VERSION_DATE = "2026-07-31"
 
 from flask import Flask, render_template, request, jsonify, send_file, session, send_from_directory
 import os
@@ -722,30 +722,25 @@ def delete_watermark_preset(preset_id):
 
 @app.route('/watermark/apply', methods=['POST'])
 def apply_watermarks():
-    """批量应用水印到PDF文件（使用全局配置和预设）"""
+    """批量应用水印到PDF文件（支持多文件）"""
     try:
         data = request.get_json() or {}
-        filename = data.get('filename')
+        filenames = data.get('filenames', [])  # 改为接收文件名列表
         preset_ids = data.get('preset_ids', [])
         session_id = session.get('session_id')
 
         if not session_id:
             return jsonify({'error': '会话无效'}), 400
 
-        if not filename:
+        if not filenames:
             return jsonify({'error': '缺少文件名'}), 400
 
         if not preset_ids:
             return jsonify({'error': '请至少选择一个水印预设'}), 400
 
-        # 获取输入文件路径
         session_upload = os.path.join(UPLOAD_FOLDER, session_id)
         session_processed = os.path.join(PROCESSED_FOLDER, session_id)
         os.makedirs(session_processed, exist_ok=True)
-
-        input_path = os.path.join(session_upload, filename)
-        if not os.path.exists(input_path):
-            return jsonify({'error': '文件不存在'}), 404
 
         # 加载全局配置
         global_config = _load_watermark_config()
@@ -772,37 +767,62 @@ def apply_watermarks():
             }
             full_presets.append(full_preset)
 
-        # 批量添加水印
-        generated_files = watermark_processor.batch_add_watermarks(
-            input_path,
-            session_processed,
-            full_presets
-        )
+        # 存储所有生成的文件夹路径（用于打包）
+        all_output_folders = []
 
-        if not generated_files:
-            return jsonify({'error': '添加水印失败'}), 500
+        # 循环处理每个文件
+        for filename in filenames:
+            input_path = os.path.join(session_upload, filename)
+            if not os.path.exists(input_path):
+                print(f"[WARNING] 文件不存在，跳过: {filename}")
+                continue
 
-        # 如果只有一个文件，直接返回
-        if len(generated_files) == 1:
-            return jsonify({
-                'success': True,
-                'download_file': generated_files[0]
-            })
+            # 为当前文件创建独立文件夹: 加水印-原文件名
+            base_name = os.path.splitext(filename)[0]
+            file_output_folder = os.path.join(session_processed, f'加水印-{base_name}')
+            os.makedirs(file_output_folder, exist_ok=True)
 
-        # 多个文件，打包为 ZIP（使用原文件名）
-        base_name = os.path.splitext(filename)[0]  # 去掉原文件扩展名
-        zip_filename = f'{base_name}.zip'
+            # 循环添加每个水印预设
+            file_watermarked_count = 0
+            for preset in full_presets:
+                # 生成文件名: 水印名-原文件名.pdf
+                output_filename = f"{preset['name']}-{base_name}.pdf"
+                output_path = os.path.join(file_output_folder, output_filename)
+
+                # 添加单个水印
+                success = watermark_processor.add_single_watermark(
+                    input_path,
+                    output_path,
+                    preset
+                )
+
+                if success:
+                    file_watermarked_count += 1
+
+            if file_watermarked_count > 0:
+                all_output_folders.append(file_output_folder)
+
+        if not all_output_folders:
+            return jsonify({'error': '所有文件处理失败'}), 500
+
+        # 打包所有文件夹为 "已处理.zip"
+        zip_filename = '已处理.zip'
         zip_path = os.path.join(session_processed, zip_filename)
 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for pdf_name in generated_files:
-                pdf_path = os.path.join(session_processed, pdf_name)
-                zipf.write(pdf_path, pdf_name)
+            for folder_path in all_output_folders:
+                folder_name = os.path.basename(folder_path)
+                for root, dirs, files in os.walk(folder_path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        # 在 ZIP 中保留文件夹结构: 加水印-xxx/水印名-xxx.pdf
+                        arcname = os.path.join(folder_name, file)
+                        zipf.write(file_path, arcname)
 
         return jsonify({
             'success': True,
             'download_file': zip_filename,
-            'files_count': len(generated_files)
+            'files_count': len(all_output_folders)
         })
     except Exception as e:
         import traceback
@@ -812,10 +832,10 @@ def apply_watermarks():
 
 @app.route('/watermark/apply_with_action', methods=['POST'])
 def apply_watermarks_with_action():
-    """先执行PDF处理操作，然后批量添加水印"""
+    """先执行PDF处理操作，然后批量添加水印（支持多文件）"""
     try:
         data = request.get_json() or {}
-        filename = data.get('filename')
+        filenames = data.get('filenames', [])  # 改为接收文件名列表
         preset_ids = data.get('preset_ids', [])
         action_type = data.get('action_type')  # remove_header_seal, remove_seal, convert_then_remove
         session_id = session.get('session_id')
@@ -823,47 +843,14 @@ def apply_watermarks_with_action():
         if not session_id:
             return jsonify({'error': '会话无效'}), 400
 
-        if not filename or not preset_ids or not action_type:
+        if not filenames or not preset_ids or not action_type:
             return jsonify({'error': '缺少必要参数'}), 400
 
         session_upload = os.path.join(UPLOAD_FOLDER, session_id)
         session_processed = os.path.join(PROCESSED_FOLDER, session_id)
         os.makedirs(session_processed, exist_ok=True)
 
-        input_path = os.path.join(session_upload, filename)
-        if not os.path.exists(input_path):
-            return jsonify({'error': '文件不存在'}), 404
-
-        # 步骤1: 执行前置操作（去红头/去公章等）
-        # 使用 file_manager 分析文件类型
-        file_info = file_manager.analyze_file(input_path, filename)
-        files = [file_info]
-
-        if action_type == 'remove_header_seal':
-            result = pdf_processor.remove_header_and_seal(session_id, files)
-            action_prefix = '去红头'
-        elif action_type == 'remove_seal':
-            result = pdf_processor.remove_seal_only(session_id, files)
-            action_prefix = '去公章'
-        elif action_type == 'convert_then_remove':
-            result = pdf_processor.convert_then_remove_header_seal(session_id, files)
-            action_prefix = '去红头'
-        else:
-            return jsonify({'error': '未知的操作类型'}), 400
-
-        if not result.get('success'):
-            return jsonify({'error': f'前置操作失败: {result.get("error", "未知错误")}'}), 500
-
-        # 获取处理后的文件
-        processed_filename = result.get('download_file')
-        if not processed_filename:
-            return jsonify({'error': '前置操作未返回文件'}), 500
-
-        processed_path = os.path.join(session_processed, processed_filename)
-        if not os.path.exists(processed_path):
-            return jsonify({'error': '处理后的文件不存在'}), 404
-
-        # 步骤2: 加载水印配置
+        # 步骤1: 加载水印配置
         global_config = _load_watermark_config()
         all_presets = _load_watermark_presets()
         selected_presets = [p for p in all_presets if p.get('id') in preset_ids]
@@ -885,48 +872,98 @@ def apply_watermarks_with_action():
             }
             full_presets.append(full_preset)
 
-        # 步骤3: 批量添加水印，使用自定义命名
-        base_name = os.path.splitext(filename)[0]
-        generated_files = []
+        # 动作名称映射
+        action_prefix_map = {
+            'remove_header_seal': '去红头',
+            'remove_seal': '去公章',
+            'convert_then_remove': '去红头'
+        }
+        action_prefix = action_prefix_map.get(action_type, '处理')
 
-        for preset in full_presets:
-            # 生成文件名: 水印名-去红头-原文件名.pdf
-            output_filename = f"{preset['name']}-{action_prefix}-{base_name}.pdf"
-            output_path = os.path.join(session_processed, output_filename)
+        # 存储所有生成的文件夹路径（用于打包）
+        all_output_folders = []
 
-            # 添加单个水印
-            success = watermark_processor.add_single_watermark(
-                processed_path,
-                output_path,
-                preset
-            )
+        # 步骤2: 循环处理每个文件
+        for filename in filenames:
+            input_path = os.path.join(session_upload, filename)
+            if not os.path.exists(input_path):
+                print(f"[WARNING] 文件不存在，跳过: {filename}")
+                continue
 
-            if success:
-                generated_files.append(output_filename)
+            # 2.1 执行前置操作（去红头/去公章等）
+            file_info = file_manager.analyze_file(input_path, filename)
+            files = [file_info]
 
-        if not generated_files:
-            return jsonify({'error': '添加水印失败'}), 500
+            if action_type == 'remove_header_seal':
+                result = pdf_processor.remove_header_and_seal(session_id, files)
+            elif action_type == 'remove_seal':
+                result = pdf_processor.remove_seal_only(session_id, files)
+            elif action_type == 'convert_then_remove':
+                result = pdf_processor.convert_then_remove_header_seal(session_id, files)
+            else:
+                continue
 
-        # 如果只有一个文件，直接返回
-        if len(generated_files) == 1:
-            return jsonify({
-                'success': True,
-                'download_file': generated_files[0]
-            })
+            if not result.get('success'):
+                print(f"[WARNING] 前置操作失败，跳过: {filename}")
+                continue
 
-        # 多个文件，打包为 ZIP: 去红头-原文件名.zip
-        zip_filename = f'{action_prefix}-{base_name}.zip'
+            # 获取处理后的文件
+            processed_filename = result.get('download_file')
+            if not processed_filename:
+                print(f"[WARNING] 前置操作未返回文件，跳过: {filename}")
+                continue
+
+            processed_path = os.path.join(session_processed, processed_filename)
+            if not os.path.exists(processed_path):
+                print(f"[WARNING] 处理后的文件不存在，跳过: {filename}")
+                continue
+
+            # 2.2 为当前文件创建独立文件夹: 加水印-原文件名
+            base_name = os.path.splitext(filename)[0]
+            file_output_folder = os.path.join(session_processed, f'加水印-{base_name}')
+            os.makedirs(file_output_folder, exist_ok=True)
+
+            # 2.3 循环添加每个水印预设
+            file_watermarked_count = 0
+            for preset in full_presets:
+                # 生成文件名: 水印名-去红头-原文件名.pdf
+                output_filename = f"{preset['name']}-{action_prefix}-{base_name}.pdf"
+                output_path = os.path.join(file_output_folder, output_filename)
+
+                # 添加单个水印
+                success = watermark_processor.add_single_watermark(
+                    processed_path,
+                    output_path,
+                    preset
+                )
+
+                if success:
+                    file_watermarked_count += 1
+
+            if file_watermarked_count > 0:
+                all_output_folders.append(file_output_folder)
+
+        if not all_output_folders:
+            return jsonify({'error': '所有文件处理失败'}), 500
+
+        # 步骤3: 打包所有文件夹为 "已处理.zip"
+        zip_filename = '已处理.zip'
         zip_path = os.path.join(session_processed, zip_filename)
 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for pdf_name in generated_files:
-                pdf_path = os.path.join(session_processed, pdf_name)
-                zipf.write(pdf_path, pdf_name)
+            for folder_path in all_output_folders:
+                folder_name = os.path.basename(folder_path)
+                for root, dirs, files in os.walk(folder_path):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        # 在 ZIP 中保留文件夹结构: 加水印-xxx/水印名-去红头-xxx.pdf
+                        arcname = os.path.join(folder_name, file)
+                        zipf.write(file_path, arcname)
 
         return jsonify({
             'success': True,
             'download_file': zip_filename,
-            'files_count': len(generated_files)
+            'files_count': len(all_output_folders)
         })
 
     except Exception as e:

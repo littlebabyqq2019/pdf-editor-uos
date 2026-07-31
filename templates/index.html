@@ -2249,11 +2249,6 @@
             return;
         }
 
-        if (pdfFiles.length > 1) {
-            showAlert('请只上传一个PDF文件', 'error');
-            return;
-        }
-
         loadWatermarkPresets().then(() => {
             if (watermarkPresets.length === 0) {
                 showAlert('请先在"水印设置"中添加预设', 'error');
@@ -2272,7 +2267,8 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <p style="margin-bottom: 15px; color: #666;">请勾选需要添加的水印（可多选），每个水印将生成一份独立的PDF文件</p>
+                        <p style="margin-bottom: 15px; color: #666;">将对 <strong>${pdfFiles.length}</strong> 个文件分别添加水印</p>
+                        <p style="margin-bottom: 15px; color: #666;">请勾选需要添加的水印（可多选），每个文件+每个水印将生成一份独立的PDF文件</p>
                         <form id="watermarkSelectForm" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
                             ${watermarkPresets.map(preset => `
                                 <div style="padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; background: #fafbfc; transition: all 0.2s; hover: box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -2296,7 +2292,7 @@
         });
     }
 
-    // 应用水印
+    // 应用水印（支持多文件）
     async function applyWatermarks() {
         const form = document.getElementById('watermarkSelectForm');
         const checkedBoxes = form.querySelectorAll('input[name="preset"]:checked');
@@ -2307,9 +2303,9 @@
             return;
         }
 
-        // 获取PDF文件名（使用全局fileList）
+        // 获取所有PDF文件名（使用全局fileList）
         const pdfFiles = fileList.filter(f => f.type && f.type.includes('PDF'));
-        const filename = pdfFiles[0].filename;
+        const filenames = pdfFiles.map(f => f.filename);
 
         try {
             showLoading();
@@ -2318,14 +2314,14 @@
             const resp = await fetch('/watermark/apply', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({filename, preset_ids: presetIds})
+                body: JSON.stringify({filenames, preset_ids: presetIds})
             });
 
             const result = await resp.json();
 
             if (result.success) {
-                const count = result.files_count || 1;
-                showAlert(`添加水印成功，已生成 ${count} 个文件`, 'success');
+                const fileCount = result.files_count || 1;
+                showAlert(`添加水印成功！已为 ${fileCount} 个文件添加水印，正在下载...`, 'success');
                 downloadFile(result.download_file);
             } else {
                 showAlert(result.error || '添加水印失败', 'error');
@@ -2345,11 +2341,6 @@
         const pdfFiles = fileList.filter(f => f.type && f.type.includes('PDF'));
         if (pdfFiles.length === 0) {
             showAlert('请先上传PDF文件', 'error');
-            return;
-        }
-
-        if (pdfFiles.length > 1) {
-            showAlert('请只上传一个PDF文件', 'error');
             return;
         }
 
@@ -2382,8 +2373,8 @@
                         </button>
                     </div>
                     <div class="modal-body">
-                        <p style="margin-bottom: 15px; color: #666;">系统将先执行"${actionName}"，然后添加水印</p>
-                        <p style="margin-bottom: 15px; color: #666;">请勾选需要添加的水印（可多选），每个水印将生成一份独立的PDF文件</p>
+                        <p style="margin-bottom: 15px; color: #666;">系统将对 <strong>${pdfFiles.length}</strong> 个文件分别执行"${actionName}"，然后添加水印</p>
+                        <p style="margin-bottom: 15px; color: #666;">请勾选需要添加的水印（可多选），每个文件+每个水印将生成一份独立的PDF文件</p>
                         <form id="watermarkSelectForm" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
                             ${watermarkPresets.map(preset => `
                                 <div style="padding: 12px; border: 1px solid #e1e8ed; border-radius: 8px; background: #fafbfc; transition: all 0.2s; hover: box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
@@ -2413,7 +2404,7 @@
         if (modal) modal.remove();
     }
 
-    // 执行组合操作：先处理PDF，再添加水印
+    // 执行组合操作：先处理PDF，再添加水印（支持批量）
     async function applyActionWithWatermarks() {
         const form = document.getElementById('watermarkSelectForm');
         const checkedBoxes = form.querySelectorAll('input[name="preset"]:checked');
@@ -2429,9 +2420,9 @@
             return;
         }
 
-        // 获取PDF文件名
+        // 获取所有PDF文件名
         const pdfFiles = fileList.filter(f => f.type && f.type.includes('PDF'));
-        const filename = pdfFiles[0].filename;
+        const filenames = pdfFiles.map(f => f.filename);
 
         try {
             showLoading();
@@ -2441,7 +2432,7 @@
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    filename,
+                    filenames,
                     preset_ids: presetIds,
                     action_type: pendingPreAction
                 })
@@ -2450,8 +2441,8 @@
             const result = await resp.json();
 
             if (result.success) {
-                const count = result.files_count || 1;
-                showAlert(`处理成功，已生成 ${count} 个文件`, 'success');
+                const fileCount = result.files_count || 1;
+                showAlert(`处理成功！已为 ${fileCount} 个文件添加水印，正在下载...`, 'success');
                 downloadFile(result.download_file);
             } else {
                 showAlert(result.error || '处理失败', 'error');
