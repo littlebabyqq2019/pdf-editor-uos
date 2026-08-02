@@ -5,7 +5,7 @@ PDF编辑工具集成应用
 """
 
 # 版本信息
-VERSION = "1.2.3"
+VERSION = "1.2.4"
 VERSION_DATE = "2026-08-02"
 
 from flask import Flask, render_template, request, jsonify, send_file, session, send_from_directory
