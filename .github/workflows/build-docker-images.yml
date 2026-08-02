@@ -1,0 +1,250 @@
+name: Build and Push Docker Images
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+    paths:
+      - 'Dockerfile.lean'
+      - 'requirements.txt'
+      - 'pdf-new/requirements.txt'
+      - 'pdf-editor（draw）/requirements.txt'
+      - 'app.py'
+      - 'pdf_processor.py'
+      - 'image_processor.py'
+      - 'file_manager.py'
+      - 'watermark_processor.py'
+      - 'templates/**'
+      - 'static/**'
+      - '.github/workflows/build-docker-images.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/build-docker-images.yml'
+      - 'Dockerfile.lean'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/pdf-editor-uos
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse version
+        id: version
+        run: |
+          if [ -f .version ]; then
+            source .version
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version=1.0.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set platform variables
+        id: platform
+        run: |
+          # 将 linux/amd64 转换为 amd64，linux/arm64 转换为 arm64
+          ARCH=$(echo "${{ matrix.platform }}" | cut -d'/' -f2)
+          echo "arch=$ARCH" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}},suffix=-${{ steps.platform.outputs.arch }}
+            type=semver,pattern={{version}},suffix=-${{ steps.platform.outputs.arch }}
+            type=semver,pattern={{major}}.{{minor}},suffix=-${{ steps.platform.outputs.arch }}
+            type=sha,prefix=sha-,suffix=-${{ steps.platform.outputs.arch }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.lean
+          platforms: ${{ matrix.platform }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ steps.platform.outputs.arch }}
+          cache-to: type=gha,mode=max,scope=${{ steps.platform.outputs.arch }}
+          provenance: false
+
+  create-manifest:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse version
+        id: version
+        run: |
+          if [ -f .version ]; then
+            source .version
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "version=1.0.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifest for latest
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-amd64 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
+
+      - name: Create and push manifest for version tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}-amd64 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}-arm64
+
+          # 创建 major.minor 标签
+          MAJOR_MINOR=$(echo $VERSION | cut -d. -f1-2)
+          docker buildx imagetools create -t ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${MAJOR_MINOR} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}-amd64 \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}-arm64
+
+      - name: Generate deployment instructions
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          cat > deployment-instructions.md <<EOF
+          # PDF编辑工具集成版 - Docker 镜像部署说明
+
+          ## 版本信息
+          - **版本**: v${VERSION}
+          - **架构**: amd64 (x86_64) / arm64 (aarch64)
+          - **镜像仓库**: GitHub Container Registry (GHCR)
+
+          ## 拉取镜像
+
+          ### 自动选择架构（推荐）
+          Docker 会根据系统架构自动拉取对应镜像：
+          \`\`\`bash
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}
+          \`\`\`
+
+          ### 手动指定架构
+          **AMD64 (x86_64)**:
+          \`\`\`bash
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}-amd64
+          \`\`\`
+
+          **ARM64 (aarch64 / 统信UOS)**:
+          \`\`\`bash
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}-arm64
+          \`\`\`
+
+          ## 运行容器
+
+          \`\`\`bash
+          # 创建数据目录
+          mkdir -p uploads processed
+
+          # 启动容器
+          docker run -d \\
+            --name pdf-editor \\
+            -p 5000:5000 \\
+            -v \$(pwd)/uploads:/app/uploads \\
+            -v \$(pwd)/processed:/app/processed \\
+            --restart unless-stopped \\
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}
+
+          # 查看日志
+          docker logs -f pdf-editor
+          \`\`\`
+
+          ## 访问应用
+          - **主页**: http://localhost:5000
+          - **PDF编辑器**: http://localhost:5000/editor
+
+          ## 使用 docker-compose
+
+          创建 \`docker-compose.yml\`:
+          \`\`\`yaml
+          version: '3.8'
+          services:
+            pdf-editor:
+              image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${VERSION}
+              container_name: pdf-editor-app
+              ports:
+                - "5000:5000"
+              volumes:
+                - ./uploads:/app/uploads
+                - ./processed:/app/processed
+              restart: unless-stopped
+              environment:
+                - TZ=Asia/Shanghai
+          \`\`\`
+
+          启动：
+          \`\`\`bash
+          docker-compose up -d
+          \`\`\`
+
+          ## 镜像信息
+          - **基础镜像**: python:3.9-slim
+          - **预计大小**: ~400-500MB
+          - **已包含依赖**: Flask, PyMuPDF, PyPDF2, Pillow, opencv-python, ofd2img 等
+
+          ## 更多说明
+          详见项目 [DOCKER_README.md](https://github.com/${{ github.repository }}/blob/main/DOCKER_README.md)
+          EOF
+
+          cat deployment-instructions.md
+
+      - name: Upload deployment instructions
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-instructions
+          path: deployment-instructions.md
