@@ -67,11 +67,11 @@ COPY pdf-editor（draw）/static/ /app/pdf-editor（draw）/static/
 COPY pdf-editor（draw）/templates/ /app/pdf-editor（draw）/templates/
 
 # 创建必要的目录
-RUN mkdir -p /app/uploads /app/processed
+RUN mkdir -p /app/uploads /app/processed /app/config
 
 # 设置权限
 RUN chmod -R 755 /app && \
-    chmod -R 777 /app/uploads /app/processed
+    chmod -R 777 /app/uploads /app/processed /app/config
 
 EXPOSE 5000
 

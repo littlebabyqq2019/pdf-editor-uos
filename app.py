@@ -93,11 +93,13 @@ def add_cache_headers(response):
         response.headers['Cache-Control'] = 'public, max-age=300'
     return response
 
-# 提前定义并创建上传/处理目录
+# 提前定义并创建上传/处理/配置目录
 UPLOAD_FOLDER = os.path.join(APP_DIR, 'uploads')
 PROCESSED_FOLDER = os.path.join(APP_DIR, 'processed')
+CONFIG_FOLDER = os.path.join(APP_DIR, 'config')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(PROCESSED_FOLDER, exist_ok=True)
+os.makedirs(CONFIG_FOLDER, exist_ok=True)
 
 def clean_temp_folders():
     """清空uploads和processed文件夹内容"""
@@ -134,9 +136,9 @@ image_processor = ImageProcessor(UPLOAD_FOLDER, PROCESSED_FOLDER)
 file_manager = FileManager(UPLOAD_FOLDER, PROCESSED_FOLDER)
 watermark_processor = WatermarkProcessor()
 
-# 水印预设与配置持久化存储
-WATERMARK_PRESETS_FILE = os.path.join(APP_DIR, 'watermark_presets.json')
-WATERMARK_CONFIG_FILE = os.path.join(APP_DIR, 'watermark_config.json')
+# 水印预设与配置持久化存储（存放在config目录，支持Docker挂载）
+WATERMARK_PRESETS_FILE = os.path.join(CONFIG_FOLDER, 'watermark_presets.json')
+WATERMARK_CONFIG_FILE = os.path.join(CONFIG_FOLDER, 'watermark_config.json')
 
 def _load_watermark_config():
     """加载全局水印配置"""

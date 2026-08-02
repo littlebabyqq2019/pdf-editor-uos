@@ -54,6 +54,7 @@ docker run -d \
   -p 5000:5000 \
   -v $(pwd)/uploads:/app/uploads \
   -v $(pwd)/processed:/app/processed \
+  -v $(pwd)/config:/app/config \
   pdf-editor-uos:latest
 
 # 3. 查看日志
@@ -89,7 +90,7 @@ docker images | grep pdf-editor-uos
 
 ```bash
 # 创建必要的目录
-mkdir -p uploads processed
+mkdir -p uploads processed config
 
 # 启动容器
 docker run -d \
@@ -98,6 +99,7 @@ docker run -d \
   -p 5000:5000 \
   -v $(pwd)/uploads:/app/uploads \
   -v $(pwd)/processed:/app/processed \
+  -v $(pwd)/config:/app/config \
   --restart unless-stopped \
   pdf-editor-uos:latest
 
@@ -197,6 +199,9 @@ docker run -d -p 8080:5000 ...
 
 - `./uploads:/app/uploads` - 上传文件目录
 - `./processed:/app/processed` - 处理后文件目录
+- `./config:/app/config` - 配置文件目录（水印预设、全局配置等）
+
+**重要**：挂载 `config` 目录后，水印配置、预设等会持久化保存，容器重启或重建后不会丢失。
 
 ### 资源限制
 
