@@ -27,7 +27,7 @@ on:
       - 'Dockerfile.lean'
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 env:
