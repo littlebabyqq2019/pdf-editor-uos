@@ -5,8 +5,8 @@ PDF编辑工具集成应用
 """
 
 # 版本信息
-VERSION = "1.2.2"
-VERSION_DATE = "2026-07-31"
+VERSION = "1.2.3"
+VERSION_DATE = "2026-08-02"
 
 from flask import Flask, render_template, request, jsonify, send_file, session, send_from_directory
 import os
@@ -900,6 +900,101 @@ def apply_watermarks():
         return jsonify({'error': f'处理失败: {e}'}), 500
 
 
+@app.route('/ofd_to_pdf', methods=['POST'])
+def ofd_to_pdf():
+    """OFD转PDF（支持多文件）"""
+    try:
+        from ofd2img import OFD
+        
+        data = request.get_json() or {}
+        filenames = data.get('filenames', [])
+        
+        if not filenames:
+            return jsonify({'error': '未提供文件'}), 400
+        
+        session_id = session.get('session_id')
+        session_upload = os.path.join(UPLOAD_FOLDER, session_id)
+        session_processed = os.path.join(PROCESSED_FOLDER, session_id)
+        os.makedirs(session_processed, exist_ok=True)
+        
+        print(f"[INFO] 开始转换 {len(filenames)} 个OFD文件为PDF")
+        
+        # 存储所有转换成功的PDF文件
+        converted_files = []
+        
+        for filename in filenames:
+            input_path = os.path.join(session_upload, filename)
+            if not os.path.exists(input_path):
+                print(f"[WARNING] 文件不存在，跳过: {filename}")
+                continue
+            
+            # 检查文件扩展名
+            if not filename.lower().endswith('.ofd'):
+                print(f"[WARNING] 不是OFD文件，跳过: {filename}")
+                continue
+            
+            base_name = os.path.splitext(filename)[0]
+            output_filename = f"{base_name}.pdf"
+            output_path = os.path.join(session_processed, output_filename)
+            
+            print(f"[INFO] 转换OFD文件: {filename}")
+            
+            try:
+                # 使用ofd2img转换
+                ofd = OFD()
+                ofd.read(input_path, fmt="path")
+                pdf_bytes = ofd.to_pdf()
+                
+                # 保存转换后的PDF
+                with open(output_path, 'wb') as f:
+                    f.write(pdf_bytes)
+                
+                print(f"[INFO] 转换成功: {output_filename}, 大小: {len(pdf_bytes)} bytes")
+                converted_files.append(output_filename)
+                
+            except Exception as e:
+                print(f"[ERROR] 转换OFD失败 {filename}: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+        
+        if not converted_files:
+            print(f"[ERROR] 所有文件转换失败")
+            return jsonify({'error': '所有文件转换失败'}), 500
+        
+        # 判断是否需要打包
+        if len(converted_files) == 1:
+            # 单个文件，直接返回
+            print(f"[INFO] 单个文件，直接返回: {converted_files[0]}")
+            return jsonify({
+                'success': True,
+                'download_file': converted_files[0]
+            })
+        else:
+            # 多个文件，打包成ZIP
+            print(f"[INFO] 多个文件，打包为ZIP")
+            zip_filename = 'OFD转PDF.zip'
+            zip_path = os.path.join(session_processed, zip_filename)
+            
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for pdf_filename in converted_files:
+                    pdf_path = os.path.join(session_processed, pdf_filename)
+                    zipf.write(pdf_path, pdf_filename)
+                    print(f"[INFO] 添加到ZIP: {pdf_filename}")
+            
+            print(f"[INFO] ZIP文件创建成功: {zip_path}")
+            
+            return jsonify({
+                'success': True,
+                'download_file': zip_filename
+            })
+    
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'转换失败: {e}'}), 500
+
+
 @app.route('/pdf_to_images', methods=['POST'])
 def pdf_to_images():
     """PDF转图片（支持多文件）"""
@@ -1131,7 +1226,39 @@ def apply_watermarks_with_action():
         if not all_output_folders:
             return jsonify({'error': '所有文件处理失败'}), 500
 
-        # 步骤3: 打包所有文件夹为 "已处理.zip"
+        # 步骤3: 统计生成的文件数量，单个文件直接返回，多个文件打包为ZIP
+        total_files = 0
+        all_generated_files = []  # (完整路径, 文件名)
+        for folder_path in all_output_folders:
+            for root, dirs, files in os.walk(folder_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    all_generated_files.append((file_path, file))
+                    total_files += 1
+
+        if total_files == 1:
+            # 单个文件，移到processed根目录并直接返回
+            src_file_path, original_filename = all_generated_files[0]
+            dest_file_path = os.path.join(session_processed, original_filename)
+
+            if os.path.exists(dest_file_path):
+                os.remove(dest_file_path)
+
+            shutil.move(src_file_path, dest_file_path)
+
+            # 删除空文件夹
+            for folder_path in all_output_folders:
+                if os.path.exists(folder_path):
+                    shutil.rmtree(folder_path)
+
+            return jsonify({
+                'success': True,
+                'download_file': original_filename,
+                'files_count': 1,
+                'direct_file': True
+            })
+
+        # 多个文件，打包所有文件夹为 "已处理.zip"
         zip_filename = '已处理.zip'
         zip_path = os.path.join(session_processed, zip_filename)
 

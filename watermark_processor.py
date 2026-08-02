@@ -339,3 +339,109 @@ class WatermarkProcessor:
         """
         return self.add_watermark(input_pdf_path, output_pdf_path, watermark_preset)
 
+    def add_watermark_to_image(
+        self,
+        input_image_path: str,
+        output_image_path: str,
+        watermark_preset: Dict[str, Any]
+    ) -> bool:
+        """
+        为图片添加水印并保持原格式输出
+
+        Args:
+            input_image_path: 输入图片路径（jpg、png等）
+            output_image_path: 输出图片路径（完整路径，包含文件名，保持原格式）
+            watermark_preset: 水印预设配置
+
+        Returns:
+            成功返回True，失败返回False
+        """
+        try:
+            # 读取原始图片
+            img = Image.open(input_image_path)
+            original_mode = img.mode
+            original_format = img.format or 'PNG'
+
+            # 转换为RGBA模式以支持透明度
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+
+            # 获取图片尺寸
+            img_width, img_height = img.size
+
+            # 提取水印参数
+            text = watermark_preset.get('text', '水印')
+            font_size = watermark_preset.get('font_size', 40)
+            color = watermark_preset.get('color', '#CCCCCC')
+            opacity = watermark_preset.get('opacity', 0.3)
+            rotation = watermark_preset.get('rotation', 45)
+            density = watermark_preset.get('density', 3)
+
+            # 创建单个水印文字图片
+            watermark_img = self.create_watermark_image(text, font_size, color, opacity, rotation)
+            wm_width, wm_height = watermark_img.size
+
+            # 图片水印缩放系数：让图片水印与PDF水印大小一致
+            # PDF使用72 DPI基准，而大多数图片是150-300 DPI
+            # 通过计算图片与A4纸（595x842点）的比例来动态调整
+            # 假设典型A4扫描图片约为 1754x2480 像素（210x297mm @ 200 DPI）
+            scale_factor = max(img_width / 595, img_height / 842)
+
+            # 缩放水印图片
+            scaled_wm_width = int(wm_width * scale_factor)
+            scaled_wm_height = int(wm_height * scale_factor)
+            watermark_img_scaled = watermark_img.resize(
+                (scaled_wm_width, scaled_wm_height),
+                Image.Resampling.LANCZOS
+            )
+
+            # 创建透明图层用于放置水印
+            watermark_layer = Image.new('RGBA', (img_width, img_height), (0, 0, 0, 0))
+
+            # 使用与PDF相同的密度计算方式
+            x_spacing = img_width / (density + 1)
+            y_spacing = img_height / (density + 1)
+
+            # 平铺水印（与PDF逻辑一致）
+            for i in range(density + 1):
+                for j in range(density + 1):
+                    x = int(x_spacing * (i + 0.5) - scaled_wm_width / 2)
+                    y = int(y_spacing * (j + 0.5) - scaled_wm_height / 2)
+                    watermark_layer.paste(watermark_img_scaled, (x, y), watermark_img_scaled)
+
+            # 合成原图和水印层
+            watermarked_img = Image.alpha_composite(img, watermark_layer)
+
+            # 根据输出文件扩展名决定保存格式
+            output_ext = os.path.splitext(output_image_path)[1].lower()
+
+            # 如果输出格式是JPEG，需要转换为RGB（JPEG不支持透明度）
+            if output_ext in ['.jpg', '.jpeg']:
+                # 创建白色背景
+                rgb_img = Image.new('RGB', watermarked_img.size, (255, 255, 255))
+                rgb_img.paste(watermarked_img, mask=watermarked_img.split()[3])  # 使用alpha通道作为mask
+                rgb_img.save(output_image_path, 'JPEG', quality=95)
+            elif output_ext == '.png':
+                watermarked_img.save(output_image_path, 'PNG')
+            elif output_ext in ['.bmp', '.tiff', '.tif']:
+                # BMP和TIFF也需要转RGB
+                rgb_img = Image.new('RGB', watermarked_img.size, (255, 255, 255))
+                rgb_img.paste(watermarked_img, mask=watermarked_img.split()[3])
+                if output_ext == '.bmp':
+                    rgb_img.save(output_image_path, 'BMP')
+                else:
+                    rgb_img.save(output_image_path, 'TIFF')
+            else:
+                # 默认保存为PNG
+                watermarked_img.save(output_image_path, 'PNG')
+
+            print(f'[INFO] 图片水印添加成功: {output_image_path}')
+            print(f'[INFO] 图片尺寸: {img_width}x{img_height}, 水印缩放: {scale_factor:.2f}x')
+            return True
+
+        except Exception as e:
+            print(f'[ERROR] 图片水印添加失败: {e}')
+            import traceback
+            traceback.print_exc()
+            return False
+

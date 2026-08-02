@@ -27,6 +27,8 @@ class FileManager:
             file_info['type'] = 'image'
         elif file_ext in ['.doc', '.docx']:
             file_info['type'] = 'word'
+        elif file_ext == '.ofd':
+            file_info['type'] = 'ofd'
 
         return file_info
     
@@ -115,6 +117,8 @@ class FileManager:
                 return self._get_image_preview(file_path)
             elif file_ext in ['.doc', '.docx']:
                 return {'type': 'word', 'filename': os.path.basename(file_path)}
+            elif file_ext == '.ofd':
+                return {'type': 'ofd', 'filename': os.path.basename(file_path)}
             else:
                 return {'error': '不支持的文件类型'}
                 
