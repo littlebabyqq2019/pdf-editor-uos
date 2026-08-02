@@ -91,6 +91,7 @@ jobs:
             type=sha,prefix=sha-,suffix=-${{ steps.platform.outputs.arch }}
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -102,6 +103,19 @@ jobs:
           cache-from: type=gha,scope=${{ steps.platform.outputs.arch }}
           cache-to: type=gha,mode=max,scope=${{ steps.platform.outputs.arch }}
           provenance: false
+          outputs: type=docker,dest=/tmp/image-${{ steps.platform.outputs.arch }}.tar
+
+      - name: Compress Docker image
+        run: |
+          gzip -c /tmp/image-${{ steps.platform.outputs.arch }}.tar > /tmp/pdf-editor-uos-${{ steps.platform.outputs.arch }}.tar.gz
+          ls -lh /tmp/pdf-editor-uos-${{ steps.platform.outputs.arch }}.tar.gz
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image-${{ steps.platform.outputs.arch }}
+          path: /tmp/pdf-editor-uos-${{ steps.platform.outputs.arch }}.tar.gz
+          retention-days: 30
 
   create-manifest:
     runs-on: ubuntu-latest
@@ -238,6 +252,18 @@ jobs:
 
           ## 更多说明
           详见项目 [DOCKER_README.md](https://github.com/${{ github.repository }}/blob/main/DOCKER_README.md)
+
+          ## 离线部署
+
+          如需离线部署，下载对应架构的镜像文件：
+          - 在 GitHub Release 页面下载 \`pdf-editor-uos-amd64.tar.gz\` (x86_64)
+          - 在 GitHub Release 页面下载 \`pdf-editor-uos-arm64.tar.gz\` (ARM64/UOS)
+
+          导入镜像：
+          \`\`\`bash
+          gunzip pdf-editor-uos-arm64.tar.gz
+          docker load -i pdf-editor-uos-arm64.tar
+          \`\`\`
           EOF
 
           cat deployment-instructions.md
@@ -248,3 +274,72 @@ jobs:
         with:
           name: deployment-instructions
           path: deployment-instructions.md
+
+      - name: Download Docker image artifacts for release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Prepare release artifacts
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p release-artifacts
+
+          # 移动镜像文件到 release 目录
+          if [ -f artifacts/docker-image-amd64/pdf-editor-uos-amd64.tar.gz ]; then
+            mv artifacts/docker-image-amd64/pdf-editor-uos-amd64.tar.gz release-artifacts/
+            echo "✓ AMD64 镜像已准备"
+          fi
+
+          if [ -f artifacts/docker-image-arm64/pdf-editor-uos-arm64.tar.gz ]; then
+            mv artifacts/docker-image-arm64/pdf-editor-uos-arm64.tar.gz release-artifacts/
+            echo "✓ ARM64 镜像已准备"
+          fi
+
+          # 移动部署说明
+          if [ -f artifacts/deployment-instructions/deployment-instructions.md ]; then
+            mv artifacts/deployment-instructions/deployment-instructions.md release-artifacts/
+            echo "✓ 部署说明已准备"
+          fi
+
+          # 显示文件列表
+          echo "Release artifacts:"
+          ls -lh release-artifacts/
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+          body: |
+            ## PDF编辑工具集成版 Docker 镜像发布
+
+            ### 镜像拉取（推荐）
+            ```bash
+            # 自动选择架构
+            docker pull ghcr.io/${{ github.repository_owner }}/pdf-editor-uos:${{ github.ref_name }}
+            ```
+
+            ### 离线安装
+            下载对应架构的 tar.gz 文件：
+            - `pdf-editor-uos-amd64.tar.gz` - x86_64 架构
+            - `pdf-editor-uos-arm64.tar.gz` - ARM64/UOS 架构
+
+            导入镜像：
+            ```bash
+            gunzip pdf-editor-uos-*.tar.gz
+            docker load -i pdf-editor-uos-*.tar
+            ```
+
+            ### 运行容器
+            ```bash
+            docker run -d --name pdf-editor -p 5000:5000 \
+              -v $(pwd)/uploads:/app/uploads \
+              -v $(pwd)/processed:/app/processed \
+              ghcr.io/${{ github.repository_owner }}/pdf-editor-uos:${{ github.ref_name }}
+            ```
+
+            访问：http://localhost:5000
+
+            详细说明见 `deployment-instructions.md`
