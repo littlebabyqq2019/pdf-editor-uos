@@ -314,6 +314,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: release-artifacts/*
+          append_body: true
+          overwrite_files: true
           body: |
             ## PDF编辑工具集成版 Docker 镜像发布
 
