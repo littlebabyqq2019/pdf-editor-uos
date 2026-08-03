@@ -1,5 +1,14 @@
 # 更新日志
 
+## v1.2.7 (2026-08-03)
+
+### 问题修复
+
+- **Docker 镜像缺少所有 Python 依赖导致启动崩溃（`ModuleNotFoundError: No module named 'flask'`）**：排查发现根因不是文件缺失，而是 GitHub Actions 的 BuildKit 远程缓存（`type=gha`）里，`pip install` 这一层从 2026-08-02 起就被缓存成了"空产物"（仅有 pip/setuptools/wheel，没有任何项目依赖），此后每次构建该层都直接命中缓存、被静默跳过，导致连续几个版本（v1.2.4~v1.2.6）的镜像实际都没有真正安装任何依赖
+- 新增构建期依赖校验步骤（`RUN python -c "import flask, ..."`），一旦依赖缺失会让 `docker build` 直接失败，防止此类问题被静默放行到发布产物
+
+---
+
 ## v1.2.6 (2026-08-03)
 
 ### 问题修复

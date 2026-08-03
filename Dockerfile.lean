@@ -35,6 +35,7 @@ COPY pdf-new/requirements.txt /tmp/requirements_pdf_new.txt
 COPY pdf-editor（draw）/requirements.txt /tmp/requirements_pdf_editor.txt
 
 # 安装Python依赖
+# cache bust: 2026-08-03 修复 GHA 构建缓存返回空 site-packages 导致的 ModuleNotFoundError 问题
 RUN cat /tmp/requirements_main.txt /tmp/requirements_pdf_new.txt /tmp/requirements_pdf_editor.txt | \
     grep -v "^#" | grep -v "^$" | grep -v "pyinstaller" | sort -u > /tmp/requirements_final.txt && \
     pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r /tmp/requirements_final.txt && \
@@ -43,6 +44,9 @@ RUN cat /tmp/requirements_main.txt /tmp/requirements_pdf_new.txt /tmp/requiremen
     find /usr/local/lib/python3.9 -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
     find /usr/local/lib/python3.9 -type f -name '*.pyc' -delete && \
     find /usr/local/lib/python3.9 -type f -name '*.pyo' -delete
+
+# 构建期校验：确保关键依赖已真正安装，避免因构建缓存异常而悄悄产出缺依赖的镜像
+RUN python -c "import flask, PyPDF2, PIL, cv2, numpy, docx, reportlab, fitz, skimage, ofd2img; print('[build-check] 依赖校验通过')"
 
 # 只复制必要的应用文件（不复制整个项目！）
 COPY app.py /app/
