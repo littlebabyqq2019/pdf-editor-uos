@@ -109,14 +109,14 @@ jobs:
 
       - name: Compress Docker image
         run: |
-          gzip -c /tmp/image-${{ steps.platform.outputs.arch }}.tar > /tmp/pdf-editor-uos-${{ steps.platform.outputs.arch }}.tar.gz
-          ls -lh /tmp/pdf-editor-uos-${{ steps.platform.outputs.arch }}.tar.gz
+          gzip -c /tmp/image-${{ steps.platform.outputs.arch }}.tar > /tmp/pdf-editor-docker-image-${{ steps.platform.outputs.arch }}.tar.gz
+          ls -lh /tmp/pdf-editor-docker-image-${{ steps.platform.outputs.arch }}.tar.gz
 
       - name: Upload Docker image artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image-${{ steps.platform.outputs.arch }}
-          path: /tmp/pdf-editor-uos-${{ steps.platform.outputs.arch }}.tar.gz
+          path: /tmp/pdf-editor-docker-image-${{ steps.platform.outputs.arch }}.tar.gz
           retention-days: 30
 
   create-manifest:
@@ -258,13 +258,13 @@ jobs:
           ## 离线部署
 
           如需离线部署，下载对应架构的镜像文件：
-          - 在 GitHub Release 页面下载 \`pdf-editor-uos-amd64.tar.gz\` (x86_64)
-          - 在 GitHub Release 页面下载 \`pdf-editor-uos-arm64.tar.gz\` (ARM64/UOS)
+          - 在 GitHub Release 页面下载 \`pdf-editor-docker-image-amd64.tar.gz\` (x86_64)
+          - 在 GitHub Release 页面下载 \`pdf-editor-docker-image-arm64.tar.gz\` (ARM64/UOS)
 
           导入镜像：
           \`\`\`bash
-          gunzip pdf-editor-uos-arm64.tar.gz
-          docker load -i pdf-editor-uos-arm64.tar
+          gunzip pdf-editor-docker-image-arm64.tar.gz
+          docker load -i pdf-editor-docker-image-arm64.tar
           \`\`\`
           EOF
 
@@ -289,13 +289,13 @@ jobs:
           mkdir -p release-artifacts
 
           # 移动镜像文件到 release 目录
-          if [ -f artifacts/docker-image-amd64/pdf-editor-uos-amd64.tar.gz ]; then
-            mv artifacts/docker-image-amd64/pdf-editor-uos-amd64.tar.gz release-artifacts/
+          if [ -f artifacts/docker-image-amd64/pdf-editor-docker-image-amd64.tar.gz ]; then
+            mv artifacts/docker-image-amd64/pdf-editor-docker-image-amd64.tar.gz release-artifacts/
             echo "✓ AMD64 镜像已准备"
           fi
 
-          if [ -f artifacts/docker-image-arm64/pdf-editor-uos-arm64.tar.gz ]; then
-            mv artifacts/docker-image-arm64/pdf-editor-uos-arm64.tar.gz release-artifacts/
+          if [ -f artifacts/docker-image-arm64/pdf-editor-docker-image-arm64.tar.gz ]; then
+            mv artifacts/docker-image-arm64/pdf-editor-docker-image-arm64.tar.gz release-artifacts/
             echo "✓ ARM64 镜像已准备"
           fi
 
@@ -327,13 +327,13 @@ jobs:
 
             ### 离线安装
             下载对应架构的 tar.gz 文件：
-            - `pdf-editor-uos-amd64.tar.gz` - x86_64 架构
-            - `pdf-editor-uos-arm64.tar.gz` - ARM64/UOS 架构
+            - `pdf-editor-docker-image-amd64.tar.gz` - x86_64 架构
+            - `pdf-editor-docker-image-arm64.tar.gz` - ARM64/UOS 架构
 
             导入镜像：
             ```bash
-            gunzip pdf-editor-uos-*.tar.gz
-            docker load -i pdf-editor-uos-*.tar
+            gunzip pdf-editor-docker-image-*.tar.gz
+            docker load -i pdf-editor-docker-image-*.tar
             ```
 
             ### 运行容器
