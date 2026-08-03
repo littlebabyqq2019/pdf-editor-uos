@@ -1,5 +1,13 @@
 # 更新日志
 
+## v1.2.6 (2026-08-03)
+
+### 问题修复
+
+- **Docker 镜像启动崩溃循环**：`Dockerfile.lean` 未复制 `watermark_processor.py`，容器启动执行 `python app.py` 时因缺少水印模块抛出 `ModuleNotFoundError` 崩溃，触发 `restart: unless-stopped` 无限重启循环。补齐该文件的 COPY 步骤后容器可正常启动
+
+---
+
 ## v1.2.5 (2026-08-03)
 
 ### 问题修复
