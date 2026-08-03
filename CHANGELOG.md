@@ -1,5 +1,14 @@
 # 更新日志
 
+## v1.2.5 (2026-08-03)
+
+### 问题修复
+
+- **Release 文件命名规范化**：Docker 镜像离线包重命名为 `pdf-editor-docker-image-{arch}.tar.gz`，与 UOS/Linux 原生可执行文件区分开，避免误认为是普通可执行文件包
+- **Release 资产覆盖冲突**：Docker、ARM64 构建工作流的 GitHub Release 步骤补充 `overwrite_files: true`，避免不同工作流上传的文件相互覆盖（此前 Docker 工作流曾误删除已上传的 Windows 版本文件）
+
+---
+
 ## v1.2.4 (2026-08-02)
 
 ### 问题修复
