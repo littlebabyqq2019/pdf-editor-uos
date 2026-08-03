@@ -1,7 +1,6 @@
 # 适配国产统信UOS系统 (arm64架构) 的Dockerfile
 # 使用arm64架构的Python基础镜像
 # 注意：如果网络问题，请配置Docker镜像加速器
-# 注意：ofd2img>=0.1.0 要求 Python>=3.10，不可降回 3.9
 FROM python:3.11-slim
 
 # 设置工作目录

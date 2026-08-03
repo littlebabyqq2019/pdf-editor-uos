@@ -250,7 +250,7 @@ jobs:
           ## 镜像信息
           - **基础镜像**: python:3.9-slim
           - **预计大小**: ~400-500MB
-          - **已包含依赖**: Flask, PyMuPDF, PyPDF2, Pillow, opencv-python, ofd2img 等
+          - **已包含依赖**: Flask, PyMuPDF, PyPDF2, Pillow, opencv-python 等
 
           ## 更多说明
           详见项目 [DOCKER_README.md](https://github.com/${{ github.repository }}/blob/main/DOCKER_README.md)

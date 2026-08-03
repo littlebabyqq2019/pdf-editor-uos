@@ -1,6 +1,5 @@
 # 精简版Dockerfile - 模仿之前的400MB镜像
 # 只复制必要文件，不复制整个项目
-# 注意：ofd2img>=0.1.0 要求 Python>=3.10，基础镜像不可降回 3.9，否则 pip install 会静默失败
 FROM docker.m.daocloud.io/library/python:3.11-slim
 
 WORKDIR /app
@@ -12,8 +11,8 @@ ENV PYTHONUNBUFFERED=1 \
     TZ=Asia/Shanghai
 
 # 安装系统依赖
-# fonts-wqy-microhei/fonts-wqy-zenhei: 中文字体，watermark_processor.py 和 ofd2img
-# 渲染中文文字依赖 /usr/share/fonts/truetype/wqy/ 下的字体文件，缺失时中文水印/OFD转PDF会报错或中文丢失
+# fonts-wqy-microhei/fonts-wqy-zenhei: 中文字体，watermark_processor.py 渲染中文水印
+# 依赖 /usr/share/fonts/truetype/wqy/ 下的字体文件，缺失时会报错
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -53,7 +52,7 @@ RUN cat /tmp/requirements_main.txt /tmp/requirements_pdf_new.txt /tmp/requiremen
     find /usr/local/lib/python3.11 -type f -name '*.pyo' -delete
 
 # 构建期校验：确保关键依赖已真正安装，避免因构建缓存异常而悄悄产出缺依赖的镜像
-RUN python -c "import flask, PyPDF2, PIL, cv2, numpy, docx, reportlab, fitz, skimage, ofd2img; print('[build-check] 依赖校验通过')"
+RUN python -c "import flask, PyPDF2, PIL, cv2, numpy, docx, reportlab, fitz, skimage; print('[build-check] 依赖校验通过')"
 
 # 只复制必要的应用文件（不复制整个项目！）
 COPY app.py /app/

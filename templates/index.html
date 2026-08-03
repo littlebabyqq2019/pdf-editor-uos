@@ -891,7 +891,7 @@
                     </label>
                 </div>
             </div>
-            <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.doc,.docx,.ofd" style="display: none;">
+            <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.bmp,.tiff,.doc,.docx" style="display: none;">
         </div>
 
         <div class="function-buttons">
@@ -950,9 +950,6 @@
 
                 <button class="function-btn pdf-to-image" onclick="convertPdfToImages()">
                     <i class="fas fa-images"></i> PDF转图片
-                </button>
-                <button class="function-btn ofd-to-pdf" onclick="convertOfdToPdf()" style="background: linear-gradient(135deg, #a29bfe, #6c5ce7) !important;">
-                    <i class="fas fa-file-pdf"></i> OFD转PDF
                 </button>
             </div>
         </div>
@@ -2397,47 +2394,6 @@
             }
         } catch (err) {
             showAlert('PDF转图片失败: ' + err.message, 'error');
-        } finally {
-            hideLoading();
-        }
-    }
-
-    // OFD转PDF
-    async function convertOfdToPdf() {
-        // 获取所有OFD文件
-        const ofdFiles = fileList.filter(f => f.filename && f.filename.toLowerCase().endsWith('.ofd'));
-
-        if (ofdFiles.length === 0) {
-            showAlert('请先上传OFD文件', 'warning');
-            return;
-        }
-
-        const filenames = ofdFiles.map(f => f.filename);
-
-        try {
-            showLoading('正在转换OFD为PDF...');
-
-            const resp = await fetch('/ofd_to_pdf', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({filenames})
-            });
-
-            const result = await resp.json();
-
-            if (result.success) {
-                showAlert(`OFD转PDF成功！已处理 ${ofdFiles.length} 个文件，正在下载...`, 'success');
-                // 先下载
-                await downloadFile(result.download_file);
-                // 延迟清空
-                setTimeout(() => {
-                    clearAllFiles();
-                }, 500);
-            } else {
-                showAlert(result.error || 'OFD转PDF失败', 'error');
-            }
-        } catch (err) {
-            showAlert('OFD转PDF失败: ' + err.message, 'error');
         } finally {
             hideLoading();
         }
