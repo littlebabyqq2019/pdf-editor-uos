@@ -49,6 +49,7 @@ COPY app.py /app/
 COPY pdf_processor.py /app/
 COPY image_processor.py /app/
 COPY file_manager.py /app/
+COPY watermark_processor.py /app/
 
 # 复制模板和静态文件
 COPY templates/ /app/templates/
