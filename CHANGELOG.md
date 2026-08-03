@@ -1,5 +1,14 @@
 # 更新日志
 
+## v1.2.8 (2026-08-03)
+
+### 问题修复
+
+- **Docker 镜像依赖全部缺失的真正根因**：`Dockerfile.lean` 使用的基础镜像是 `python:3.9-slim`，而 `ofd2img>=0.1.0`（v1.2.3 引入）要求 Python>=3.10。pip 在 3.9 环境下解析依赖失败后未以非零退出码终止整条 `RUN` 命令，导致 Flask 等其它包也未被真正安装，但 `docker build` 仍报告成功，产出的镜像启动即崩溃。之前 v1.2.7 排查方向（GHA 缓存）只是加重了问题的隐蔽性，未命中根因
+- 修复：`Dockerfile.lean`、`Dockerfile` 基础镜像统一升级为 `python:3.11-slim`，与 Windows/Linux ARM64 构建流程使用的 Python 版本保持一致（这两条流程此前已用同一份 requirements.txt 在 Python 3.11 下验证过可正常安装）
+
+---
+
 ## v1.2.7 (2026-08-03)
 
 ### 问题修复
