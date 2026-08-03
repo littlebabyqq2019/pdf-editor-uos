@@ -12,6 +12,8 @@ ENV PYTHONUNBUFFERED=1 \
     TZ=Asia/Shanghai
 
 # 安装系统依赖
+# fonts-wqy-microhei/fonts-wqy-zenhei: 中文字体，watermark_processor.py 和 ofd2img
+# 渲染中文文字依赖 /usr/share/fonts/truetype/wqy/ 下的字体文件，缺失时中文水印/OFD转PDF会报错或中文丢失
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -25,6 +27,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtiff-dev \
     libwebp-dev \
     tzdata \
+    fonts-wqy-microhei \
+    fonts-wqy-zenhei \
+    fontconfig \
+    && fc-cache -f -v \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
     && rm -rf /var/lib/apt/lists/* \

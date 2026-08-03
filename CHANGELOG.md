@@ -1,5 +1,15 @@
 # 更新日志
 
+## v1.2.9 (2026-08-03)
+
+### 问题修复
+
+- **Docker 版添加水印报错 `UnicodeEncodeError: 'latin-1' codec can't encode characters`**：`watermark_processor.py` 依赖系统安装的中文字体（如文泉驿微米黑）来渲染水印文字，但 `Dockerfile.lean` 从未安装任何中文字体包，容器内找不到字体文件后回退到 PIL 内置的 latin-1 位图字体，遇到中文字符直接崩溃报错
+- **Docker 版 OFD 转 PDF 后中文丢失、只剩数字**：与上一条同一根因。`ofd2img` 库通过扫描 `/usr/share/fonts` 目录发现可用字体，容器内没有任何中文字体可扫描到，渲染时回退到无中文字形的内置字体，中文字符被静默跳过（不报错，故只丢中文、数字/ASCII 正常）
+- 修复：`Dockerfile.lean` 新增安装 `fonts-wqy-microhei`、`fonts-wqy-zenhei`、`fontconfig` 并执行 `fc-cache` 刷新字体缓存，Windows 版此前一直可用是因为直接使用了系统自带的微软雅黑等字体，不受影响
+
+---
+
 ## v1.2.8 (2026-08-03)
 
 ### 问题修复
