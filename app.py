@@ -1032,8 +1032,9 @@ def word_to_pdf():
         import aspose.words as aw
 
         # 加载 Aspose.Words License
+        # PyInstaller 打包后，license 文件在 _MEIPASS 临时目录（TEMPLATE_BASE），不在 exe 所在目录（APP_DIR）
         lic = aw.License()
-        lic_path = os.path.join(APP_DIR, 'aspose.words.lic')
+        lic_path = os.path.join(TEMPLATE_BASE, 'aspose.words.lic')
         try:
             lic.set_license(lic_path)
             print(f"[INFO] Aspose.Words License 加载成功: {lic_path}")
