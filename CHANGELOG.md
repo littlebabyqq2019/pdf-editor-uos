@@ -1,5 +1,21 @@
 # 更新日志
 
+## v1.4.0 (2026-08-30)
+
+### 新增功能
+
+- **Word 转 PDF 功能**：新增 Word 转 PDF 按钮，支持批量转换 `.doc` 和 `.docx` 文件为 PDF
+  - 使用 Aspose.Words for Python 25.9.0 实现高质量转换
+  - 单个文件转换后重命名为 `原文件名.pdf` 并自动下载
+  - 多个文件转换后打包为 `Word转PDF.zip` 下载
+  - Windows exe 和 Docker 镜像均已包含完整支持
+
+### 修复
+
+- **修复 Docker 启动时的挂载点删除错误**：`clear_startup_folders()` 函数尝试删除 `/app/uploads` 挂载点本身导致 `Device or resource busy` 错误，已改为只清空目录内容，兼容 Docker 卷挂载
+
+---
+
 ## v1.3.0 (2026-08-03)
 
 ### 功能移除

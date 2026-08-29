@@ -8,3 +8,4 @@ reportlab==4.0.4
 PyMuPDF==1.23.8
 Werkzeug==2.3.7
 scikit-image>=0.21.0
+# aspose-words==25.9.0  # Word转PDF功能，通过本地whl安装（Aspose.Words/python专用whl包/*.whl）

@@ -951,6 +951,9 @@
                 <button class="function-btn pdf-to-image" onclick="convertPdfToImages()">
                     <i class="fas fa-images"></i> PDF转图片
                 </button>
+                <button class="function-btn word-to-pdf" onclick="convertWordToPdf()" style="background: linear-gradient(135deg, #667eea, #764ba2) !important;">
+                    <i class="fas fa-file-word"></i> Word转PDF
+                </button>
             </div>
         </div>
 
@@ -2394,6 +2397,48 @@
             }
         } catch (err) {
             showAlert('PDF转图片失败: ' + err.message, 'error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Word转PDF
+    async function convertWordToPdf() {
+        // 获取所有Word文件（.doc 和 .docx）
+        const wordFiles = fileList.filter(f => {
+            const name = f.filename ? f.filename.toLowerCase() : '';
+            return name.endsWith('.doc') || name.endsWith('.docx');
+        });
+
+        if (wordFiles.length === 0) {
+            showAlert('请先上传Word文件（.doc 或 .docx）', 'warning');
+            return;
+        }
+
+        const filenames = wordFiles.map(f => f.filename);
+
+        try {
+            showLoading('正在转换Word为PDF...');
+
+            const resp = await fetch('/word_to_pdf', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filenames})
+            });
+
+            const result = await resp.json();
+
+            if (result.success) {
+                showAlert(`Word转PDF成功！已处理 ${wordFiles.length} 个文件，正在下载...`, 'success');
+                await downloadFile(result.download_file);
+                setTimeout(() => {
+                    clearAllFiles();
+                }, 500);
+            } else {
+                showAlert(result.error || 'Word转PDF失败', 'error');
+            }
+        } catch (err) {
+            showAlert('Word转PDF失败: ' + err.message, 'error');
         } finally {
             hideLoading();
         }

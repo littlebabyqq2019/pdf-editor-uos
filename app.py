@@ -376,10 +376,18 @@ def split_pdf():
         return jsonify({'error': f'拆分失败: {e}'}), 500
 
 def clear_startup_folders():
-    """程序启动时仅清空 uploads 文件夹"""
+    """程序启动时仅清空 uploads 文件夹内容（不删除目录本身，兼容 Docker 卷挂载）"""
     try:
         if os.path.exists(UPLOAD_FOLDER):
-            shutil.rmtree(UPLOAD_FOLDER)
+            for item in os.listdir(UPLOAD_FOLDER):
+                item_path = os.path.join(UPLOAD_FOLDER, item)
+                try:
+                    if os.path.isfile(item_path) or os.path.islink(item_path):
+                        os.unlink(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                except Exception as e:
+                    print(f"[WARNING] 无法删除 {item_path}: {e}")
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
         os.makedirs(PROCESSED_FOLDER, exist_ok=True)
         print("启动时已清空uploads文件夹（保留processed）")
@@ -1015,6 +1023,103 @@ def pdf_to_images():
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'转换失败: {e}'}), 500
+
+
+@app.route('/word_to_pdf', methods=['POST'])
+def word_to_pdf():
+    """Word转PDF（支持多文件，支持 .doc 和 .docx）"""
+    try:
+        import aspose.words as aw
+
+        # 加载 Aspose.Words License
+        lic = aw.License()
+        lic_path = os.path.join(APP_DIR, 'aspose.words.lic')
+        try:
+            lic.set_license(lic_path)
+            print(f"[INFO] Aspose.Words License 加载成功: {lic_path}")
+        except Exception as e:
+            print(f"[WARNING] Aspose.Words License 加载失败: {e}，将使用试用模式")
+
+        data = request.get_json() or {}
+        filenames = data.get('filenames', [])
+
+        if not filenames:
+            return jsonify({'error': '未提供文件'}), 400
+
+        session_id = session.get('session_id')
+        session_upload = os.path.join(UPLOAD_FOLDER, session_id)
+        session_processed = os.path.join(PROCESSED_FOLDER, session_id)
+        os.makedirs(session_processed, exist_ok=True)
+
+        print(f"[INFO] 开始转换 {len(filenames)} 个Word文件为PDF")
+
+        converted_files = []
+
+        for filename in filenames:
+            input_path = os.path.join(session_upload, filename)
+            if not os.path.exists(input_path):
+                print(f"[WARNING] 文件不存在，跳过: {filename}")
+                continue
+
+            # 检查文件扩展名
+            ext = filename.lower()
+            if not (ext.endswith('.doc') or ext.endswith('.docx')):
+                print(f"[WARNING] 不是Word文件，跳过: {filename}")
+                continue
+
+            base_name = os.path.splitext(filename)[0]
+            output_filename = f"{base_name}.pdf"
+            output_path = os.path.join(session_processed, output_filename)
+
+            print(f"[INFO] 转换Word文件: {filename}")
+
+            try:
+                # 使用 Aspose.Words 转换
+                doc = aw.Document(input_path)
+                doc.save(output_path, aw.SaveFormat.PDF)
+
+                print(f"[INFO] 转换成功: {output_filename}")
+                converted_files.append(output_filename)
+
+            except Exception as e:
+                print(f"[ERROR] 转换Word失败 {filename}: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+
+        if not converted_files:
+            print(f"[ERROR] 所有文件转换失败")
+            return jsonify({'error': '所有文件转换失败'}), 500
+
+        # 单个文件直接返回，多个文件打包ZIP
+        if len(converted_files) == 1:
+            print(f"[INFO] 单个文件，直接返回: {converted_files[0]}")
+            return jsonify({
+                'success': True,
+                'download_file': converted_files[0]
+            })
+        else:
+            print(f"[INFO] 多个文件，打包为ZIP")
+            zip_filename = 'Word转PDF.zip'
+            zip_path = os.path.join(session_processed, zip_filename)
+
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for pdf_filename in converted_files:
+                    pdf_path = os.path.join(session_processed, pdf_filename)
+                    zipf.write(pdf_path, pdf_filename)
+                    print(f"[INFO] 添加到ZIP: {pdf_filename}")
+
+            print(f"[INFO] ZIP文件创建成功: {zip_path}")
+
+            return jsonify({
+                'success': True,
+                'download_file': zip_filename
+            })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Word转PDF失败: {e}'}), 500
 
 
 @app.route('/watermark/apply_with_action', methods=['POST'])

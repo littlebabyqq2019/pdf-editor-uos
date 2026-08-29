@@ -51,8 +51,13 @@ RUN cat /tmp/requirements_main.txt /tmp/requirements_pdf_new.txt /tmp/requiremen
     find /usr/local/lib/python3.11 -type f -name '*.pyc' -delete && \
     find /usr/local/lib/python3.11 -type f -name '*.pyo' -delete
 
+# 安装 Aspose.Words for Python (Linux x86_64 版本)
+COPY Aspose.Words/python专用whl包/aspose_words-25.9.0-py3-none-manylinux1_x86_64.whl /tmp/
+RUN pip install --no-cache-dir /tmp/aspose_words-25.9.0-py3-none-manylinux1_x86_64.whl && \
+    rm /tmp/aspose_words-25.9.0-py3-none-manylinux1_x86_64.whl
+
 # 构建期校验：确保关键依赖已真正安装，避免因构建缓存异常而悄悄产出缺依赖的镜像
-RUN python -c "import flask, PyPDF2, PIL, cv2, numpy, docx, reportlab, fitz, skimage; print('[build-check] 依赖校验通过')"
+RUN python -c "import flask, PyPDF2, PIL, cv2, numpy, docx, reportlab, fitz, skimage, aspose.words; print('[build-check] 依赖校验通过')"
 
 # 只复制必要的应用文件（不复制整个项目！）
 COPY app.py /app/
@@ -60,6 +65,7 @@ COPY pdf_processor.py /app/
 COPY image_processor.py /app/
 COPY file_manager.py /app/
 COPY watermark_processor.py /app/
+COPY aspose.words.lic /app/
 
 # 复制模板和静态文件
 COPY templates/ /app/templates/

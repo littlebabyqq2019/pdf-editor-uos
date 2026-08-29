@@ -11,6 +11,7 @@ a = Analysis(
         ('static', 'static'),
         ('pdf-new', 'pdf-new'),
         ('pdf-editor（draw）', 'pdf-editor（draw）'),
+        ('aspose.words.lic', '.'),  # Aspose.Words license 文件
     ],
     hiddenimports=[
         'flask',
@@ -25,6 +26,7 @@ a = Analysis(
         'skimage.measure',
         'skimage.morphology',
         'skimage.filters',
+        'aspose.words',  # Aspose.Words for Python
     ],
     hookspath=[],
     hooksconfig={},
