@@ -51,6 +51,8 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install pyinstaller
           pip install -r requirements.txt
+          # 安装 Aspose.Words for Python (Windows AMD64)
+          pip install "Aspose.Words/python专用whl包/aspose_words-25.9.0-py3-none-win_amd64.whl"
 
       - name: Build Windows AMD64 executable
         shell: pwsh

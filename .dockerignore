@@ -91,7 +91,8 @@ daemon.json
 *.tar
 *.tar.gz
 *.tar.xz
-*.zip
+# 允许常用公文字体 zip 文件
+!常用公文字体.zip
 
 # 图标和版本信息生成脚本
 create_icon.py
