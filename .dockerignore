@@ -35,6 +35,9 @@ pdf_editor_env/
 pdf-new/pdf_editor_env/
 pdf-editor（draw）/venv/
 
+# 字体临时目录（需要复制到 Docker 镜像）
+!fonts_temp/
+
 # IDE
 .vscode/
 .idea/

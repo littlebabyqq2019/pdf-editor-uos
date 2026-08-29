@@ -35,6 +35,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
+# 复制并安装常用公文字体（仿宋、楷体、黑体、方正系列等）
+# 用于 Aspose.Words 转换 Word 文档时保持字体一致性
+COPY fonts_temp/*.ttf /usr/share/fonts/truetype/chinese-fonts/
+COPY fonts_temp/*.TTF /usr/share/fonts/truetype/chinese-fonts/
+RUN fc-cache -f -v
+
 # 合并requirements
 COPY requirements.txt /tmp/requirements_main.txt
 COPY pdf-new/requirements.txt /tmp/requirements_pdf_new.txt
