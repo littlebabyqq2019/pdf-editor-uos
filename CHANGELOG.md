@@ -1,6 +1,6 @@
 # 更新日志
 
-## v1.4.0 (2026-08-30)
+## v1.5.0 (2026-08-30)
 
 ### 新增功能
 
@@ -13,6 +13,18 @@
 ### 修复
 
 - **修复 Docker 启动时的挂载点删除错误**：`clear_startup_folders()` 函数尝试删除 `/app/uploads` 挂载点本身导致 `Device or resource busy` 错误，已改为只清空目录内容，兼容 Docker 卷挂载
+- **修复 Aspose.Words license 加载路径**：PyInstaller 打包后从 `TEMPLATE_BASE` (_MEIPASS) 加载 license 文件，避免转换的 PDF 出现水印
+- **修复 GitHub Actions 构建问题**：
+  - Docker 构建：改为在 Dockerfile 中直接解压 `常用公文字体.zip`（72MB），安装 19 个中文字体
+  - Windows exe 构建：添加安装 aspose.words whl 包步骤
+
+### 技术改进
+
+- Docker 镜像包含常用公文字体（仿宋、楷体、黑体、方正系列等），确保 Word 转 PDF 时中文字体渲染正确
+
+### 限制
+
+- Docker 暂时只支持 AMD64 架构（Aspose.Words 无 ARM64 版本）
 
 ---
 
