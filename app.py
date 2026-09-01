@@ -1028,13 +1028,19 @@ def pdf_to_images():
 @app.route('/word_to_pdf', methods=['POST'])
 def word_to_pdf():
     """Word转PDF（支持多文件，支持 .doc 和 .docx）"""
+    print(f"[DEBUG] /word_to_pdf 路由被调用")
+    print(f"[DEBUG] Request method: {request.method}")
+    print(f"[DEBUG] Request headers: {dict(request.headers)}")
+
     try:
         import aspose.words as aw
+        print(f"[DEBUG] aspose.words 导入成功")
 
         # 加载 Aspose.Words License
         # PyInstaller 打包后，license 文件在 _MEIPASS 临时目录（TEMPLATE_BASE），不在 exe 所在目录（APP_DIR）
         lic = aw.License()
         lic_path = os.path.join(TEMPLATE_BASE, 'aspose.words.lic')
+        print(f"[DEBUG] License 路径: {lic_path}, 是否存在: {os.path.exists(lic_path)}")
         try:
             lic.set_license(lic_path)
             print(f"[INFO] Aspose.Words License 加载成功: {lic_path}")
@@ -1042,6 +1048,7 @@ def word_to_pdf():
             print(f"[WARNING] Aspose.Words License 加载失败: {e}，将使用试用模式")
 
         data = request.get_json() or {}
+        print(f"[DEBUG] 接收到的数据: {data}")
         filenames = data.get('filenames', [])
 
         if not filenames:
@@ -1118,6 +1125,7 @@ def word_to_pdf():
             })
 
     except Exception as e:
+        print(f"[ERROR] Word转PDF 异常: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': f'Word转PDF失败: {e}'}), 500
