@@ -13,7 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
 # 安装系统依赖
 # fonts-wqy-microhei/fonts-wqy-zenhei: 中文字体，watermark_processor.py 渲染中文水印
 # 依赖 /usr/share/fonts/truetype/wqy/ 下的字体文件，缺失时会报错
-# libicu72: ICU (International Components for Unicode) 库，aspose.words 依赖此库进行字符编码和全球化支持
+# libicu-dev: ICU (International Components for Unicode) 库，aspose.words 依赖此库进行字符编码和全球化支持
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-wqy-microhei \
     fonts-wqy-zenhei \
     fontconfig \
-    libicu72 \
+    libicu-dev \
     && fc-cache -f -v \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
