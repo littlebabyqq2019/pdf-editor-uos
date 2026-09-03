@@ -19,6 +19,8 @@ ENV PYTHONUNBUFFERED=1 \
 # 依赖 /usr/share/fonts/truetype/wqy/ 下的字体文件，缺失时会报错
 # libicu-dev: ICU (International Components for Unicode) 库，aspose.words 依赖此库进行字符编码和全球化支持
 # libssl3: OpenSSL 库，aspose.words 的 .NET 运行时需要此库进行加密操作
+# libcurl4, libkrb5-3: .NET 运行时的网络和认证功能依赖
+# liblttng-ust1: .NET 运行时的追踪功能依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -37,6 +39,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fontconfig \
     libicu-dev \
     libssl3 \
+    libcurl4 \
+    libkrb5-3 \
+    liblttng-ust1 \
     && fc-cache -f -v \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
