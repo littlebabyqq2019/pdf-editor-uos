@@ -18,6 +18,7 @@ ENV PYTHONUNBUFFERED=1 \
 # fonts-wqy-microhei/fonts-wqy-zenhei: 中文字体，watermark_processor.py 渲染中文水印
 # 依赖 /usr/share/fonts/truetype/wqy/ 下的字体文件，缺失时会报错
 # libicu-dev: ICU (International Components for Unicode) 库，aspose.words 依赖此库进行字符编码和全球化支持
+# libssl3: OpenSSL 库，aspose.words 的 .NET 运行时需要此库进行加密操作
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -35,6 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-wqy-zenhei \
     fontconfig \
     libicu-dev \
+    libssl3 \
     && fc-cache -f -v \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
