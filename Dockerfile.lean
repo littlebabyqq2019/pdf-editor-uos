@@ -4,11 +4,16 @@ FROM docker.m.daocloud.io/library/python:3.11-slim
 
 WORKDIR /app
 
+# 设置 .NET Core 运行时环境变量
+# DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false: 启用全球化支持（需要 ICU）
+# DOTNET_SYSTEM_GLOBALIZATION_APPLOCALICU: 使用系统 ICU 库而非应用内嵌的
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     FLASK_APP=app.py \
     FLASK_ENV=production \
-    TZ=Asia/Shanghai
+    TZ=Asia/Shanghai \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false \
+    DOTNET_SYSTEM_GLOBALIZATION_APPLOCALICU=76
 
 # 安装系统依赖
 # fonts-wqy-microhei/fonts-wqy-zenhei: 中文字体，watermark_processor.py 渲染中文水印
