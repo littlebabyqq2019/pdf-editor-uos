@@ -51,8 +51,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean
 
 # 从 Debian Bullseye 仓库安装 OpenSSL 1.1（Debian Trixie 默认只有 OpenSSL 3.x）
-RUN wget -q http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.1w-0+deb11u2_amd64.deb \
-    && dpkg -i libssl1.1_1.1.1w-0+deb11u2_amd64.deb \
+RUN wget http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.1w-0+deb11u2_amd64.deb \
+    && dpkg -i libssl1.1_1.1.1w-0+deb11u2_amd64.deb || (apt-get update && apt-get install -f -y && dpkg -i libssl1.1_1.1.1w-0+deb11u2_amd64.deb) \
     && rm libssl1.1_1.1.1w-0+deb11u2_amd64.deb
 
 # 复制并安装常用公文字体（仿宋、楷体、黑体、方正系列等）
