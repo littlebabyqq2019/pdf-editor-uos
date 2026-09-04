@@ -18,7 +18,7 @@ ENV PYTHONUNBUFFERED=1 \
 # fonts-wqy-microhei/fonts-wqy-zenhei: 中文字体，watermark_processor.py 渲染中文水印
 # 依赖 /usr/share/fonts/truetype/wqy/ 下的字体文件，缺失时会报错
 # libicu-dev: ICU (International Components for Unicode) 库，aspose.words 依赖此库进行字符编码和全球化支持
-# libssl3: OpenSSL 库，aspose.words 的 .NET 运行时需要此库进行加密操作
+# libssl1.1: OpenSSL 1.1 库，aspose.words 的 .NET Core 3.1 运行时需要此版本（不兼容 OpenSSL 3.x）
 # libcurl4, libkrb5-3: .NET 运行时的网络和认证功能依赖
 # liblttng-ust1: .NET 运行时的追踪功能依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,15 +38,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-wqy-zenhei \
     fontconfig \
     libicu-dev \
-    libssl3 \
     libcurl4 \
     libkrb5-3 \
     liblttng-ust1 \
+    wget \
+    ca-certificates \
     && fc-cache -f -v \
     && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
+    && ln -sf /usr/lib/x86_64-linux-gnu/liblttng-ust.so.1 /usr/lib/x86_64-linux-gnu/liblttng-ust.so.0 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
+
+# 从 Debian Bullseye 仓库安装 OpenSSL 1.1（Debian Trixie 默认只有 OpenSSL 3.x）
+RUN wget -q http://security.debian.org/debian-security/pool/updates/main/o/openssl/libssl1.1_1.1.1w-0+deb11u2_amd64.deb \
+    && dpkg -i libssl1.1_1.1.1w-0+deb11u2_amd64.deb \
+    && rm libssl1.1_1.1.1w-0+deb11u2_amd64.deb
 
 # 复制并安装常用公文字体（仿宋、楷体、黑体、方正系列等）
 # 用于 Aspose.Words 转换 Word 文档时保持字体一致性
